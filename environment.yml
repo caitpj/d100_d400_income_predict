@@ -1,0 +1,15 @@
+name: d100_d300_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - ucimlrepo
+  - numpy
+  - pandas
+  - pyarrow
+  - pip
+  - pre-commit
+  - black
+  - mypy
+  - flake8
