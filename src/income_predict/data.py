@@ -1,34 +1,35 @@
 import argparse
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from ucimlrepo import fetch_ucirepo
 
 
-def load_data(output_format="parquet"):
+def load_data(output_format: Literal["csv", "parquet"] = "parquet") -> pd.DataFrame:
     """
     Fetches the Census Income dataset (UCI ID=2) and saves the combined
     dataset to a 'data' folder.
 
     Args:
         output_format (str): The file format to save as. Options: 'csv', 'parquet'.
+
+    Returns:
+        pd.DataFrame: The combined dataset containing features and targets.
     """
-    # Validate format
     if output_format not in ["csv", "parquet"]:
         raise ValueError("output_format must be either 'csv' or 'parquet'")
 
     print("Fetching Census Income dataset (UCI ID=2)...")
 
     # fetch dataset
-    # We still use variable 'adult' here as it's the return object from the library,
-    # but we won't expose that name in our files.
     dataset_repo = fetch_ucirepo(id=2)
 
     # Access the combined dataframe directly
-    df = dataset_repo.data.original
-
-    # Fallback if .original is unavailable
-    if df is None:
+    df: pd.DataFrame
+    if dataset_repo.data.original is not None:
+        df = dataset_repo.data.original
+    else:
         print(
             "Warning: 'original' dataframe not found. Merging features and targets manually."
         )
@@ -40,6 +41,7 @@ def load_data(output_format="parquet"):
 
     print(f"Saving census income data to {data_dir.resolve()} as {output_format}...")
 
+    file_path: Path
     if output_format == "csv":
         file_path = data_dir / "census_income.csv"
         df.to_csv(file_path, index=False)
