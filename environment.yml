@@ -1,0 +1,7 @@
+name: d100_d300_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9  # You can change this to your preferred version
+  - ucimlrepo
