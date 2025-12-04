@@ -11,3 +11,18 @@ dependencies = []
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+src_paths = ["src"]
+
+[tool.mypy]
+mypy_path = "src"
+check_untyped_defs = true
+ignore_missing_imports = true
+explicit_package_bases = true
