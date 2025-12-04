@@ -3,5 +3,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9  # You can change this to your preferred version
+  - python=3.9
   - ucimlrepo
+  - numpy
+  - pandas
+  - pip
