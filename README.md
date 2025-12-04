@@ -14,8 +14,8 @@ It uses **Miniforge** to minimize image size and prioritize the `conda-forge` ch
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git)
-cd YOUR_REPO_NAME
+git clone https://github.com/caitpj/d100_d400_income_predict.git
+cd d100_d400_income_predict
 ```
 
 ### 2. Build the Docker Image
