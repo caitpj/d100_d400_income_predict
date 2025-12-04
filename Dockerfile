@@ -12,4 +12,4 @@ COPY . .
 
 RUN pip install . --no-deps
 
-CMD ["python", "test_setup.py"]
+CMD ["python", ".test_setup.py"]
