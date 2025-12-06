@@ -13,3 +13,6 @@ dependencies:
   - black
   - mypy
   - flake8
+  - jupyter
+  - matplotlib
+  - seaborn

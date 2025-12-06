@@ -1,10 +1,9 @@
-import argparse
 import itertools
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 import pandas as pd
 from ucimlrepo import fetch_ucirepo
@@ -75,44 +74,41 @@ def save_dataframe(
     return full_path
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Download and save the Census Income dataset."
-    )
-    parser.add_argument(
-        "--format",
-        default="parquet",
-        choices=["csv", "parquet"],
-        help="Format to save data (default: parquet)",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("data"),
-        help="Directory to save the output file (default: data)",
-    )
-    parser.add_argument(
-        "--file-name",
-        default="census_income",
-        help="Name of the output file without extension (default: census_income)",
-    )
+def run_data_fetch_pipeline(
+    output_format: Literal["csv", "parquet"] = "parquet",
+    output_dir: Union[str, Path] = "data",
+    file_name: str = "census_income",
+) -> Path:
+    """
+    Download and save the Census Income dataset.
 
-    args = parser.parse_args()
+    Args:
+        output_format (str): Format to save data ('csv' or 'parquet'). Defaults to 'parquet'.
+        output_dir (str | Path): Directory to save the output file. Defaults to 'data'.
+        file_name (str): Name of the output file without extension. Defaults to 'census_income'.
+
+    Returns:
+        Path: The path to the saved file.
+    """
+    if output_format not in ["csv", "parquet"]:
+        raise ValueError(
+            f"Invalid format '{output_format}'. Must be 'csv' or 'parquet'."
+        )
+
+    output_dir = Path(output_dir)
 
     try:
         df = fetch_census_data()
     except Exception as e:
-        print(f"Error downloading data: {e}", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(f"Error downloading data: {e}") from e
 
     saved_path = save_dataframe(
         df=df,
-        output_dir=args.output_dir,
-        file_name=args.file_name,
-        output_format=args.format,
+        output_dir=output_dir,
+        file_name=file_name,
+        output_format=output_format,
     )
+
     print(f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {saved_path}")
 
-
-if __name__ == "__main__":
-    main()
+    return saved_path
