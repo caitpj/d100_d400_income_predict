@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -6,9 +8,7 @@ import pandas as pd
 COLUMN_RENAMING = {
     "age": "age",
     "workclass": "work_class",
-    "fnlwgt": "final_weight",  # census demographic weight
     "education": "education",
-    "education-num": "education_years",
     "marital-status": "marital_status",
     "occupation": "occupation",
     "relationship": "relationship",
@@ -18,46 +18,49 @@ COLUMN_RENAMING = {
     "capital-loss": "capital_loss",
     "hours-per-week": "hours_per_week",
     "native-country": "native_country",
-    "income": "income",  # should be two values: <=$50K, >$50K
+    "income": "income",
 }
 
+COLUMNS_TO_DROP = ["fnlwgt", "education-num", "income"]
 
-def clean_columns(df: pd.DataFrame, renaming_map: dict) -> pd.DataFrame:
+
+def clean_columns(
+    df: pd.DataFrame,
+    renaming_map: dict = COLUMN_RENAMING,
+    columns_to_drop: list = COLUMNS_TO_DROP,
+) -> pd.DataFrame:
     """
-    Standardizes column names to lowercase with underscores and remove
-    redundant final_weight column.
+    Renames a standard set of columns to use snake_case and drops
+    a predefined list of columns (fnlwgt, education-num, income).
     """
+    columns_to_drop_in_df = [col for col in columns_to_drop if col in df.columns]
+    if columns_to_drop_in_df:
+        df = df.drop(columns=columns_to_drop_in_df)
+
     df = df.rename(columns=renaming_map)
-
-    if "final_weight" in df.columns:
-        df = df.drop(columns=["final_weight"])
 
     return df
 
 
 def clean_and_binarize_income(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Cleans the 'income' column by removing trailing periods and
-    converts it into a binary field called 'high_income' (1 for '>50K', 0 for '=<50K').
+    Cleans the 'income' column and converts it into a boolean field
+    (True for '>50K', False for '=<50K').
     """
     income_col = "income"
     high_income_col = "high_income"
-
-    df[income_col] = df[income_col].astype(str).str.strip(".").str.strip()
-    df[high_income_col] = (df[income_col] == ">50K").astype(int)
-
-    return df
-
-
-def replace_question_marks_with_nan(df: pd.DataFrame, renaming_map: dict):
-    """
-    Looks for the string '?' in the columns defined by the values of the
-    provided COLUMN_RENAMING dictionary and converts those values to np.nan.
-    """
-    target_cols = [col for col in renaming_map.values() if col in df.columns]
-    df[target_cols] = df[target_cols].replace("?", np.nan)
+    cleaned_income = df[income_col].astype(str).str.strip().str.strip(".")
+    df[income_col] = cleaned_income
+    df[high_income_col] = cleaned_income == ">50K"
 
     return df
+
+
+def replace_question_marks_with_nan(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Replaces '?' with np.nan across all columns in the dataframe.
+    """
+    return df.replace("?", np.nan)
 
 
 def trim_string(value: Any) -> Any:
@@ -87,13 +90,35 @@ def trim_dataframe_whitespace(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def run_cleaning_pipeline(df: pd.DataFrame) -> pd.DataFrame:
+def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     """
     Master function that runs all cleaning steps in a logical order.
     """
+    df = clean_and_binarize_income(df)
     df = clean_columns(df, COLUMN_RENAMING)
     df = trim_dataframe_whitespace(df)
-    df = replace_question_marks_with_nan(df, COLUMN_RENAMING)
-    df = clean_and_binarize_income(df)
+    df = replace_question_marks_with_nan(df)
 
     return df
+
+
+def run_cleaning_pipeline(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Runs full cleaning pipeline and saves result in parquet format.
+    """
+    df = full_clean(df)
+
+    current_file = Path(__file__).resolve()
+    src_directory = current_file.parent.parent
+
+    if str(src_directory) not in sys.path:
+        sys.path.append(str(src_directory))
+
+    data_dir = src_directory / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    output_path = data_dir / "cleaned_census_income.parquet"
+
+    df.to_parquet(output_path)
+    print(
+        f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {data_dir.name}/{output_path.name}"
+    )

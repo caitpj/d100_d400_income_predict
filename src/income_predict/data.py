@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional
 
 import pandas as pd
 from ucimlrepo import fetch_ucirepo
@@ -56,59 +56,36 @@ def fetch_census_data() -> pd.DataFrame:
     return pd.concat([data.data.features, data.data.targets], axis=1)
 
 
-def save_dataframe(
-    df: pd.DataFrame,
-    output_dir: Path,
-    file_name: str,
-    output_format: Literal["csv", "parquet"],
-) -> Path:
-    """Saves the dataframe to disk."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    full_path = output_dir / f"{file_name}.{output_format}"
-
-    if output_format == "csv":
-        df.to_csv(full_path, index=False)
-    else:
-        df.to_parquet(full_path, index=False)
-
-    return full_path
-
-
 def run_data_fetch_pipeline(
-    output_format: Literal["csv", "parquet"] = "parquet",
-    output_dir: Union[str, Path] = "data",
-    file_name: str = "census_income",
+    output_format: Literal["csv", "parquet"] = "parquet"
 ) -> Path:
     """
-    Download and save the Census Income dataset.
-
-    Args:
-        output_format (str): Format to save data ('csv' or 'parquet'). Defaults to 'parquet'.
-        output_dir (str | Path): Directory to save the output file. Defaults to 'data'.
-        file_name (str): Name of the output file without extension. Defaults to 'census_income'.
-
-    Returns:
-        Path: The path to the saved file.
+    Downloads Census Income dataset and saves it to the data directory
+    relative to the project root.
     """
-    if output_format not in ["csv", "parquet"]:
-        raise ValueError(
-            f"Invalid format '{output_format}'. Must be 'csv' or 'parquet'."
-        )
-
-    output_dir = Path(output_dir)
-
     try:
         df = fetch_census_data()
     except Exception as e:
         raise RuntimeError(f"Error downloading data: {e}") from e
 
-    saved_path = save_dataframe(
-        df=df,
-        output_dir=output_dir,
-        file_name=file_name,
-        output_format=output_format,
+    current_file = Path(__file__).resolve()
+    src_directory = current_file.parent.parent
+
+    if str(src_directory) not in sys.path:
+        sys.path.append(str(src_directory))
+
+    data_dir = src_directory / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    file_name = "census_income"
+    output_path = data_dir / f"{file_name}.{output_format}"
+
+    if output_format == "csv":
+        df.to_csv(output_path, index=False)
+    else:
+        df.to_parquet(output_path, index=False)
+
+    print(
+        f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {data_dir.name}/{output_path.name}"
     )
 
-    print(f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {saved_path}")
-
-    return saved_path
+    return output_path
