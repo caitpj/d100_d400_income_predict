@@ -71,9 +71,6 @@ def run_data_fetch_pipeline(
     current_file = Path(__file__).resolve()
     src_directory = current_file.parent.parent
 
-    if str(src_directory) not in sys.path:
-        sys.path.append(str(src_directory))
-
     data_dir = src_directory / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     file_name = "census_income"

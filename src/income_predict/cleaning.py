@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +21,14 @@ COLUMN_RENAMING = {
 }
 
 COLUMNS_TO_DROP = ["fnlwgt", "education-num", "income"]
+
+
+def add_unique_id(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds a unique_id column to the dataframe as the first column.
+    """
+    df.insert(0, "unique_id", range(len(df)))
+    return df
 
 
 def clean_columns(
@@ -94,6 +101,7 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     """
     Master function that runs all cleaning steps in a logical order.
     """
+    df = add_unique_id(df)
     df = clean_and_binarize_income(df)
     df = clean_columns(df, COLUMN_RENAMING)
     df = trim_dataframe_whitespace(df)
@@ -110,9 +118,6 @@ def run_cleaning_pipeline(df: pd.DataFrame) -> pd.DataFrame:
 
     current_file = Path(__file__).resolve()
     src_directory = current_file.parent.parent
-
-    if str(src_directory) not in sys.path:
-        sys.path.append(str(src_directory))
 
     data_dir = src_directory / "data"
     data_dir.mkdir(parents=True, exist_ok=True)

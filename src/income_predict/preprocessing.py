@@ -7,8 +7,7 @@ from scipy.stats import chi2_contingency
 
 current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
-if str(src_directory) not in sys.path:
-    sys.path.append(str(src_directory))
+sys.path.append(str(src_directory))
 
 import income_predict.plotting as plotting
 
