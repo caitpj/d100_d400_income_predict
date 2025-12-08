@@ -1,4 +1,3 @@
-import argparse
 import itertools
 import sys
 import threading
@@ -57,62 +56,36 @@ def fetch_census_data() -> pd.DataFrame:
     return pd.concat([data.data.features, data.data.targets], axis=1)
 
 
-def save_dataframe(
-    df: pd.DataFrame,
-    output_dir: Path,
-    file_name: str,
-    output_format: Literal["csv", "parquet"],
+def run_data_fetch_pipeline(
+    output_format: Literal["csv", "parquet"] = "parquet"
 ) -> Path:
-    """Saves the dataframe to disk."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    full_path = output_dir / f"{file_name}.{output_format}"
-
-    if output_format == "csv":
-        df.to_csv(full_path, index=False)
-    else:
-        df.to_parquet(full_path, index=False)
-
-    return full_path
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Download and save the Census Income dataset."
-    )
-    parser.add_argument(
-        "--format",
-        default="parquet",
-        choices=["csv", "parquet"],
-        help="Format to save data (default: parquet)",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("data"),
-        help="Directory to save the output file (default: data)",
-    )
-    parser.add_argument(
-        "--file-name",
-        default="census_income",
-        help="Name of the output file without extension (default: census_income)",
-    )
-
-    args = parser.parse_args()
-
+    """
+    Downloads Census Income dataset and saves it to the data directory
+    relative to the project root.
+    """
     try:
         df = fetch_census_data()
     except Exception as e:
-        print(f"Error downloading data: {e}", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(f"Error downloading data: {e}") from e
 
-    saved_path = save_dataframe(
-        df=df,
-        output_dir=args.output_dir,
-        file_name=args.file_name,
-        output_format=args.format,
+    current_file = Path(__file__).resolve()
+    src_directory = current_file.parent.parent
+
+    if str(src_directory) not in sys.path:
+        sys.path.append(str(src_directory))
+
+    data_dir = src_directory / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    file_name = "census_income"
+    output_path = data_dir / f"{file_name}.{output_format}"
+
+    if output_format == "csv":
+        df.to_csv(output_path, index=False)
+    else:
+        df.to_parquet(output_path, index=False)
+
+    print(
+        f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {data_dir.name}/{output_path.name}"
     )
-    print(f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {saved_path}")
 
-
-if __name__ == "__main__":
-    main()
+    return output_path
