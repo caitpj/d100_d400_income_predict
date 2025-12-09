@@ -36,10 +36,7 @@ def evaluate_predictions(
 
     assert (
         preds_column or model
-    ), """
-    Please either provide the column name of the pre-computed
-    predictions or a model to predict from.
-    """
+    ), "provide column name of the pre-computed predictions or   model to predict from."
 
     if preds_column is None:
         preds = model.predict_proba(df)[:, 1]
@@ -84,3 +81,63 @@ def lorenz_curve(y_true, y_pred, exposure):
     cumulated_claim_amount /= cumulated_claim_amount[-1]
     cumulated_samples = np.linspace(0, 1, len(cumulated_claim_amount))
     return cumulated_samples, cumulated_claim_amount
+
+
+def get_feature_importance(importances, feature_names):
+    """Return sorted DataFrame of feature importances."""
+    return (
+        pd.DataFrame({"feature": feature_names, "importance": importances})
+        .sort_values("importance", ascending=False)
+        .reset_index(drop=True)
+    )
+
+
+def run_evaluation(test_df, target, glm_model, lgbm_model, feature_names, train_X):
+    """Run full evaluation pipeline for GLM and LGBM models."""
+    from income_predict.plotting import plot_confusion_matrices, plot_partial_dependence
+
+    test_X = test_df.drop(columns=[target, "unique_id"])
+    test_y = test_df[target]
+
+    # Add predictions to test dataframe
+    test_eval_df = test_X.copy()
+    test_eval_df[target] = test_y.values
+    test_eval_df["glm_preds"] = glm_model.predict_proba(test_X)[:, 1]
+    test_eval_df["lgbm_preds"] = lgbm_model.predict_proba(test_X)[:, 1]
+
+    # Evaluate both models
+    glm_eval = evaluate_predictions(test_eval_df, target, preds_column="glm_preds")
+    print("\nTuned GLM Evaluation Metrics:")
+    print(glm_eval)
+
+    lgbm_eval = evaluate_predictions(test_eval_df, target, preds_column="lgbm_preds")
+    print("\nTuned LGBM Evaluation Metrics:")
+    print(lgbm_eval)
+
+    # Confusion matrices
+    plot_confusion_matrices(
+        test_eval_df[target].astype(int).values,
+        test_eval_df["glm_preds"].values,
+        test_eval_df["lgbm_preds"].values,
+    )
+
+    # Feature importance
+    preprocessor = glm_model.named_steps["preprocessor"]
+    transformed_names = preprocessor.get_feature_names_out()
+
+    glm_clf = glm_model.named_steps["classifier"]
+    glm_importance = get_feature_importance(
+        np.abs(glm_clf.coef_).flatten(), transformed_names
+    )
+    print("\nTuned GLM Feature Importance (Top 15):")
+    print(glm_importance.head(15))
+
+    lgbm_clf = lgbm_model.named_steps["classifier"]
+    lgbm_importance = get_feature_importance(
+        lgbm_clf.feature_importances_, transformed_names
+    )
+    print("\nTuned LGBM Feature Importance (Top 15):")
+    print(lgbm_importance.head(15))
+
+    # Partial dependence
+    plot_partial_dependence(lgbm_model, train_X, feature_names)

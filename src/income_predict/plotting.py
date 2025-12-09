@@ -2,6 +2,56 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from sklearn.inspection import PartialDependenceDisplay
+from sklearn.metrics import confusion_matrix
+
+
+def plot_partial_dependence(model, X, top_features):
+    """Plot partial dependence for top features."""
+    fig, ax = plt.subplots(figsize=(12, 8))
+    PartialDependenceDisplay.from_estimator(model, X, features=top_features, ax=ax)
+    plt.suptitle("Partial Dependence Plots - Top Features", y=1.02)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
+    """Plots confusion matrix heatmaps for GLM and LGBM side by side."""
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    for ax, preds, title in zip(
+        axes,
+        [glm_preds, lgbm_preds],
+        ["Tuned GLM", "Tuned LGBM"],
+    ):
+        y_pred = (preds >= 0.5).astype(int)
+        cm = confusion_matrix(y_true, y_pred)
+        cm_pct = cm / cm.sum() * 100
+
+        annotations = np.array(
+            [
+                [f"{count}\n({pct:.1f}%)" for count, pct in zip(row_counts, row_pcts)]
+                for row_counts, row_pcts in zip(cm, cm_pct)
+            ]
+        )
+
+        sns.heatmap(
+            cm,
+            annot=annotations,
+            fmt="",
+            cmap="Blues",
+            xticklabels=["<=50K", ">50K"],
+            yticklabels=["<=50K", ">50K"],
+            ax=ax,
+            cbar=False,
+        )
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
+        ax.set_title(title)
+
+    plt.suptitle("Confusion Matrices: Predicted vs Actual", y=1.02)
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_numeric_distributions(df: pd.DataFrame):

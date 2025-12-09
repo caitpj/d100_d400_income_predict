@@ -22,6 +22,46 @@ COLUMN_RENAMING = {
 
 COLUMNS_TO_DROP = ["fnlwgt", "education-num", "income"]
 
+EDUCATION_ORDER = {
+    "Preschool": 1,
+    "1st-4th": 2,
+    "5th-6th": 3,
+    "7th-8th": 4,
+    "9th": 5,
+    "10th": 6,
+    "11th": 7,
+    "12th": 8,
+    "HS-grad": 9,
+    "Some-college": 10,
+    "Assoc-voc": 11,
+    "Assoc-acdm": 12,
+    "Bachelors": 13,
+    "Masters": 14,
+    "Prof-school": 15,
+    "Doctorate": 16,
+}
+
+
+def encode_education(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert education to ordinal numeric values."""
+    df["education"] = df["education"].map(EDUCATION_ORDER)
+    return df
+
+
+def combine_capital(df: pd.DataFrame) -> pd.DataFrame:
+    """Combine capital_gain and capital_loss into single capital_net column."""
+    df["capital_net"] = df["capital_gain"] - df["capital_loss"]
+    df = df.drop(columns=["capital_gain", "capital_loss"])
+    return df
+
+
+def combine_married(df: pd.DataFrame) -> pd.DataFrame:
+    """Combine Husband and Wife into Married in relationship column."""
+    df["relationship"] = df["relationship"].replace(
+        {"Husband": "Married", "Wife": "Married"}
+    )
+    return df
+
 
 def add_unique_id(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -106,6 +146,9 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     df = clean_columns(df, COLUMN_RENAMING)
     df = trim_dataframe_whitespace(df)
     df = replace_question_marks_with_nan(df)
+    df = encode_education(df)
+    df = combine_capital(df)
+    df = combine_married(df)
 
     return df
 
