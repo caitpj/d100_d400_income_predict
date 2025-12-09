@@ -2,6 +2,7 @@ import sys
 import zlib
 from pathlib import Path
 
+import joblib
 import pandas as pd
 from lightgbm import LGBMClassifier
 from scipy.stats import loguniform, randint, uniform
@@ -36,6 +37,8 @@ categorical_features = [
     "native_country",
 ]
 
+DATA_DIR = src_directory / "data"
+
 
 def split_data_with_id_hash(data, test_ratio, id_column):
     def test_set_check(identifier):
@@ -49,12 +52,30 @@ def split_data_with_id_hash(data, test_ratio, id_column):
     return data.loc[~in_test_set], data.loc[in_test_set]
 
 
-def run_training():
-    """Train GLM and LGBM models, return tuned models and data."""
-    parquet_path = src_directory / "data" / "cleaned_census_income.parquet"
+def run_split():
+    """Split data into train/test and save to parquet."""
+    parquet_path = DATA_DIR / "cleaned_census_income.parquet"
     df = pd.read_parquet(parquet_path)
 
     train, test = split_data_with_id_hash(df, 0.2, "unique_id")
+
+    train.to_parquet(DATA_DIR / "train_split.parquet", index=False)
+    test.to_parquet(DATA_DIR / "test_split.parquet", index=False)
+
+    print(f"✅ Saved train split: {train.shape[0]} rows")
+    print(f"✅ Saved test split: {test.shape[0]} rows")
+
+
+def load_split():
+    """Load train/test split from parquet."""
+    train = pd.read_parquet(DATA_DIR / "train_split.parquet")
+    test = pd.read_parquet(DATA_DIR / "test_split.parquet")
+    return train, test
+
+
+def run_training():
+    """Train GLM and LGBM models and save to disk."""
+    train, test = load_split()
 
     train_y = train[TARGET]
     train_X = train.drop(columns=[TARGET, "unique_id"])
@@ -171,9 +192,24 @@ def run_training():
     print(f"LGBM Tuned Accuracy: {random_search_lgbm.best_score_:.4f}")
     print(f"Tuned Params: {random_search_lgbm.best_params_}")
 
+    # Save models and train_X
+    glm_model = random_search.best_estimator_
+    lgbm_model = random_search_lgbm.best_estimator_
+
+    joblib.dump(glm_model, DATA_DIR / "glm_model.joblib")
+    joblib.dump(lgbm_model, DATA_DIR / "lgbm_model.joblib")
+    train_X.to_parquet(DATA_DIR / "train_X.parquet", index=False)
+
+    print("✅ Saved GLM model")
+    print("✅ Saved LGBM model")
+    print("✅ Saved train_X")
+
+
+def load_training_outputs():
+    """Load trained models and data for evaluation."""
     return {
-        "glm_model": random_search.best_estimator_,
-        "lgbm_model": random_search_lgbm.best_estimator_,
-        "train_X": train_X,
-        "test": test,
+        "glm_model": joblib.load(DATA_DIR / "glm_model.joblib"),
+        "lgbm_model": joblib.load(DATA_DIR / "lgbm_model.joblib"),
+        "train_X": pd.read_parquet(DATA_DIR / "train_X.parquet"),
+        "test": pd.read_parquet(DATA_DIR / "test_split.parquet"),
     }

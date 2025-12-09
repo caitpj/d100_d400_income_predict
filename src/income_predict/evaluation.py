@@ -139,5 +139,18 @@ def run_evaluation(test_df, target, glm_model, lgbm_model, feature_names, train_
     print("\nTuned LGBM Feature Importance (Top 15):")
     print(lgbm_importance.head(15))
 
-    # Partial dependence
-    plot_partial_dependence(lgbm_model, train_X, feature_names)
+    # Partial dependence - use top 5 features from LGBM importance
+    top_features = lgbm_importance.head(5)["feature"].tolist()
+
+    original_features = []
+    for feat in top_features:
+        if feat.startswith("cat__"):
+            original = feat.replace("cat__", "").rsplit("_", 1)[0]
+        elif feat.startswith("num__"):
+            original = feat.replace("num__", "")
+        else:
+            original = feat
+        if original not in original_features and original in train_X.columns:
+            original_features.append(original)
+
+    plot_partial_dependence(glm_model, lgbm_model, train_X, original_features[:5])
