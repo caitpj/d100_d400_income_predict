@@ -17,6 +17,7 @@ current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
 sys.path.append(str(src_directory))
 
+from income_predict.evaluation import evaluate_predictions
 from income_predict.feature_engineering import SimpleStandardScaler
 
 TARGET = "high_income"
@@ -126,6 +127,14 @@ random_search.fit(train_X, train_y)
 print(f"GLM Tuned Accuracy: {random_search.best_score_:.4f}")
 print(f"Tuned Params: {random_search.best_params_}")
 
+# Evaluate Tuned GLM
+test_eval_df = test_X.copy()
+test_eval_df[TARGET] = test_y.values
+test_eval_df["glm_preds"] = random_search.best_estimator_.predict_proba(test_X)[:, 1]
+glm_eval = evaluate_predictions(test_eval_df, TARGET, preds_column="glm_preds")
+print("\nTuned GLM Evaluation Metrics:")
+print(glm_eval)
+
 
 # LGBM Classifier Pipeline
 lgbm_pipeline = Pipeline(
@@ -170,3 +179,11 @@ random_search_lgbm.fit(train_X, train_y)
 
 print(f"LGBM Tuned Accuracy: {random_search_lgbm.best_score_:.4f}")
 print(f"Tuned Params: {random_search_lgbm.best_params_}")
+
+# Evaluate Tuned LGBM
+test_eval_df["lgbm_preds"] = random_search_lgbm.best_estimator_.predict_proba(test_X)[
+    :, 1
+]
+lgbm_eval = evaluate_predictions(test_eval_df, TARGET, preds_column="lgbm_preds")
+print("\nTuned LGBM Evaluation Metrics:")
+print(lgbm_eval)

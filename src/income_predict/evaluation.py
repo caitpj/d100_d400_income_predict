@@ -1,65 +1,86 @@
 import numpy as np
 import pandas as pd
+from sklearn.metrics import auc, log_loss
 
 
 def evaluate_predictions(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    sample_weight: np.ndarray = None,
-) -> pd.DataFrame:
-    """
-    Compute various performance metrics for model predictions.
+    df,
+    outcome_column,
+    *,
+    preds_column=None,
+    model=None,
+    sample_weight_column=None,
+):
+    """Evaluate predictions against actual outcomes for binary classification.
 
     Parameters
     ----------
-    y_true : np.ndarray
-        True target values
-    y_pred : np.ndarray
-        Predicted values
-    sample_weight : np.ndarray, optional
-        Sample weights (e.g., exposure). If None, uniform weights are used.
+    df : pd.DataFrame
+        DataFrame used for evaluation
+    outcome_column : str
+        Name of outcome column (binary: 0/1 or True/False)
+    preds_column : str, optional
+        Name of predictions column (probabilities), by default None
+    model :
+        Fitted model with predict_proba method, by default None
+    sample_weight_column : str, optional
+        Name of sample weight column, by default None
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame with metric names as index and their values
+    evals
+        DataFrame containing metrics
     """
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
 
-    if sample_weight is None:
-        sample_weight = np.ones_like(y_true)
+    evals = {}
+
+    assert (
+        preds_column or model
+    ), """
+    Please either provide the column name of the pre-computed
+    predictions or a model to predict from.
+    """
+
+    if preds_column is None:
+        preds = model.predict_proba(df)[:, 1]
     else:
-        sample_weight = np.asarray(sample_weight)
+        preds = df[preds_column]
 
-    total_weight = np.sum(sample_weight)
+    if sample_weight_column:
+        weights = df[sample_weight_column]
+    else:
+        weights = np.ones(len(df))
 
-    # 1. Bias: deviation from actual exposure-adjusted mean
-    weighted_true_mean = np.sum(y_true * sample_weight) / total_weight
-    weighted_pred_mean = np.sum(y_pred * sample_weight) / total_weight
-    bias = weighted_pred_mean - weighted_true_mean
+    actuals = df[outcome_column].astype(float)
 
-    # 2. Deviance (for binary classification, using Bernoulli deviance)
-    y_pred_clipped = np.clip(y_pred, 1e-15, 1 - 1e-15)
-    log_loss_per_sample = -(
-        y_true * np.log(y_pred_clipped) + (1 - y_true) * np.log(1 - y_pred_clipped)
-    )
-    deviance = 2 * np.sum(sample_weight * log_loss_per_sample)
+    evals["mean_preds"] = np.average(preds, weights=weights)
+    evals["mean_outcome"] = np.average(actuals, weights=weights)
+    evals["bias"] = (evals["mean_preds"] - evals["mean_outcome"]) / evals[
+        "mean_outcome"
+    ]
 
-    # 3. Mean Absolute Error (MAE)
-    absolute_errors = np.abs(y_true - y_pred)
-    mae = np.sum(sample_weight * absolute_errors) / total_weight
+    evals["mse"] = np.average((preds - actuals) ** 2, weights=weights)
+    evals["rmse"] = np.sqrt(evals["mse"])
+    evals["mae"] = np.average(np.abs(preds - actuals), weights=weights)
 
-    # 4. Root Mean Squared Error (RMSE)
-    squared_errors = (y_true - y_pred) ** 2
-    mse = np.sum(sample_weight * squared_errors) / total_weight
-    rmse = np.sqrt(mse)
+    # Bernoulli deviance (log loss) for binary classification
+    evals["deviance"] = log_loss(actuals, preds, sample_weight=weights)
 
-    metrics = {
-        "Bias": bias,
-        "Deviance": deviance,
-        "MAE": mae,
-        "RMSE": rmse,
-    }
+    ordered_samples, cum_actuals = lorenz_curve(actuals, preds, weights)
+    evals["gini"] = 1 - 2 * auc(ordered_samples, cum_actuals)
 
-    return pd.DataFrame.from_dict(metrics, orient="index", columns=["Value"])
+    return pd.DataFrame(evals, index=[0]).T
+
+
+def lorenz_curve(y_true, y_pred, exposure):
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    exposure = np.asarray(exposure)
+
+    # order samples by increasing predicted risk:
+    ranking = np.argsort(y_pred)
+    ranked_exposure = exposure[ranking]
+    ranked_pure_premium = y_true[ranking]
+    cumulated_claim_amount = np.cumsum(ranked_pure_premium * ranked_exposure)
+    cumulated_claim_amount /= cumulated_claim_amount[-1]
+    cumulated_samples = np.linspace(0, 1, len(cumulated_claim_amount))
+    return cumulated_samples, cumulated_claim_amount
