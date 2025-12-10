@@ -131,7 +131,7 @@ def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
     plt.show()
 
 
-def plot_numeric_distributions(df: pd.DataFrame):
+def plot_distributions(df: pd.DataFrame):
     """Plots histograms for numeric columns and bar charts for boolean/string columns."""
     numeric_cols = df.select_dtypes(include=["number"]).columns
     non_binary_numeric = [col for col in numeric_cols if df[col].nunique() > 2]

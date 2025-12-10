@@ -141,6 +141,7 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     """
     Master function that runs all cleaning steps in a logical order.
     """
+    df = df.copy()
     df = add_unique_id(df)
     df = clean_and_binarize_income(df)
     df = clean_columns(df, COLUMN_RENAMING)

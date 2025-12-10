@@ -18,7 +18,7 @@ def get_data_description(df: pd.DataFrame) -> dict:
     Returns a dictionary containing data types and descriptive statistics.
     Plots the distribution of all columns.
     """
-    plotting.plot_numeric_distributions(df)
+    plotting.plot_distributions(df)
 
     return {"dtypes": df.dtypes, "description": df.describe(include="all")}
 

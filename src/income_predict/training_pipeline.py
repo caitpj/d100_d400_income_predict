@@ -9,10 +9,11 @@ sys.path.append(str(src_directory))
 
 # from income_predict.cleaning import run_cleaning_pipeline
 from income_predict.evaluation import run_evaluation
-from income_predict.model_training import (  # run_split,; run_training,
+from income_predict.model_training import (  # run_split,
     TARGET,
     load_training_outputs,
     numeric_features,
+    run_training,
 )
 
 print("Starting Pipeline...")
@@ -24,7 +25,7 @@ print("Starting Pipeline...")
 # run_cleaning_pipeline(df_raw)
 
 # run_split()
-# run_training()
+run_training()
 
 results = load_training_outputs()
 run_evaluation(
