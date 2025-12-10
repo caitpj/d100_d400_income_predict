@@ -1,6 +1,15 @@
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import auc, log_loss
+
+current_file = Path(__file__).resolve()
+src_directory = current_file.parent.parent
+sys.path.append(str(src_directory))
+
+from income_predict.plotting import plot_partial_dependence
 
 
 def evaluate_predictions(
@@ -92,9 +101,8 @@ def get_feature_importance(importances, feature_names):
     )
 
 
-def run_evaluation(test_df, target, glm_model, lgbm_model, feature_names, train_X):
+def run_evaluation(test_df, target, glm_model, lgbm_model, train_X):
     """Run full evaluation pipeline for GLM and LGBM models."""
-    from income_predict.plotting import plot_confusion_matrices, plot_partial_dependence
 
     test_X = test_df.drop(columns=[target, "unique_id"])
     test_y = test_df[target]
@@ -115,11 +123,11 @@ def run_evaluation(test_df, target, glm_model, lgbm_model, feature_names, train_
     print(lgbm_eval)
 
     # Confusion matrices
-    plot_confusion_matrices(
-        test_eval_df[target].astype(int).values,
-        test_eval_df["glm_preds"].values,
-        test_eval_df["lgbm_preds"].values,
-    )
+    # plot_confusion_matrices(
+    #     test_eval_df[target].astype(int).values,
+    #     test_eval_df["glm_preds"].values,
+    #     test_eval_df["lgbm_preds"].values,
+    # )
 
     # Feature importance
     preprocessor = glm_model.named_steps["preprocessor"]
