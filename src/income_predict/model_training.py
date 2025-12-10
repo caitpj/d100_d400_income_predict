@@ -1,8 +1,10 @@
+import random
 import sys
 import zlib
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from scipy.stats import loguniform, randint, uniform
@@ -13,6 +15,17 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+RANDOM_SEED = 42
+
+
+def set_random_seeds(seed: int = RANDOM_SEED):
+    """Set random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    # Note: For full LGBM reproducibility, set environment variable
+    # PYTHONHASHSEED=0 before running the script
+
 
 current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
@@ -25,6 +38,9 @@ numeric_features = [
     "capital_net",
     "hours_per_week",
     "education",
+    "is_white",
+    "is_black",
+    "is_female",
 ]
 
 categorical_features = [
@@ -32,8 +48,6 @@ categorical_features = [
     # 'marital_status',
     "occupation",
     "relationship",
-    "race",
-    "sex",
     "native_country",
 ]
 
@@ -75,6 +89,8 @@ def load_split():
 
 def run_training():
     """Train GLM and LGBM models and save to disk."""
+    set_random_seeds(RANDOM_SEED)
+
     train, test = load_split()
 
     train_y = train[TARGET]
@@ -105,7 +121,10 @@ def run_training():
     glm_pipeline = Pipeline(
         steps=[
             ("preprocessor", preprocessor),
-            ("classifier", SGDClassifier(loss="log_loss", max_iter=1000)),
+            (
+                "classifier",
+                SGDClassifier(loss="log_loss", max_iter=1000, random_state=RANDOM_SEED),
+            ),
         ]
     )
 
@@ -129,7 +148,7 @@ def run_training():
         "classifier__l1_ratio": uniform(0, 1),
         "classifier__alpha": loguniform(1e-4, 1e-1),
     }
-    cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)
 
     random_search = RandomizedSearchCV(
         glm_pipeline,
@@ -138,7 +157,7 @@ def run_training():
         cv=cv_strategy,
         scoring="accuracy",
         n_jobs=-1,
-        random_state=42,
+        random_state=RANDOM_SEED,
     )
     random_search.fit(train_X, train_y)
 
@@ -151,7 +170,9 @@ def run_training():
             ("preprocessor", preprocessor),
             (
                 "classifier",
-                LGBMClassifier(objective="binary", random_state=42, verbose=-1),
+                LGBMClassifier(
+                    objective="binary", random_state=RANDOM_SEED, verbose=-1
+                ),
             ),
         ]
     )
@@ -177,7 +198,7 @@ def run_training():
         "classifier__num_leaves": randint(10, 60),
         "classifier__min_child_weight": loguniform(0.0001, 0.002),
     }
-    cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)
     random_search_lgbm = RandomizedSearchCV(
         lgbm_pipeline,
         param_distributions=param_dist,
@@ -185,7 +206,7 @@ def run_training():
         cv=cv_strategy,
         scoring="accuracy",
         n_jobs=-1,
-        random_state=42,
+        random_state=RANDOM_SEED,
     )
     random_search_lgbm.fit(train_X, train_y)
 
