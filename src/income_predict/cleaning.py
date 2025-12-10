@@ -63,6 +63,21 @@ def combine_married(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def binarize_race(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert race column to binary columns: is_white and is_black."""
+    df["is_white"] = df["race"] == "White"
+    df["is_black"] = df["race"] == "Black"
+    df = df.drop(columns=["race"])
+    return df
+
+
+def binarize_sex(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert sex column to binary column: is_female."""
+    df["is_female"] = df["sex"] == "Female"
+    df = df.drop(columns=["sex"])
+    return df
+
+
 def add_unique_id(df: pd.DataFrame) -> pd.DataFrame:
     """
     Adds a unique_id column to the dataframe as the first column.
@@ -150,6 +165,8 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     df = encode_education(df)
     df = combine_capital(df)
     df = combine_married(df)
+    df = binarize_race(df)
+    df = binarize_sex(df)
 
     return df
 
