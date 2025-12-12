@@ -58,17 +58,7 @@ For ease of use consider an alias e.g.
 
 Now you can simply run `dpython script.py`
 
-## Project Structure
-
-    d100_d400_income_predict
-    ├── src
-    │   └── income_predict
-    │       └── __init__.py
-    ├── .flake8
-    ├── .gitignore
-    ├── .pre-commit-config.yaml
-    ├── .test_setup.py
-    ├── Dockerfile
-    ├── environment.yml
-    ├── pyproject.toml
-    └── README.md
+## AI Use
+Some code was AI generated, notably:
+- Visualisations
+- Pandas vs Polars benchmark test
