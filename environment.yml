@@ -16,3 +16,4 @@ dependencies:
   - jupyter
   - matplotlib
   - seaborn
+  - polars
