@@ -4,29 +4,32 @@ import numpy as np
 
 
 def confusion_matrix():
-    """Plot confusion matrices for GLM and LGBM models."""
-    # Hardcoded confusion matrix values
-    glm_cm = np.array([[7013, 503], [997, 1297]])
-    lgbm_cm = np.array([[7078, 438], [791, 1503]])
+    """Plot confusion matrices for tuned GLM and tuned LGBM models."""
+    # Hardcoded confusion matrix values for tuned models
+    glm_tuned_cm = np.array([[7026, 490], [1022, 1272]])
+    lgbm_tuned_cm = np.array([[7064, 452], [796, 1498]])
 
     # Calculate percentages
-    glm_total = glm_cm.sum()
-    lgbm_total = lgbm_cm.sum()
-    glm_pct = glm_cm / glm_total * 100
-    lgbm_pct = lgbm_cm / lgbm_total * 100
+    glm_total = glm_tuned_cm.sum()
+    lgbm_total = lgbm_tuned_cm.sum()
+    glm_pct = glm_tuned_cm / glm_total * 100
+    lgbm_pct = lgbm_tuned_cm / lgbm_total * 100
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    labels = ["High Income", "Not High Income"]
+    labels = ["<=50K", ">50K"]
 
     for idx, (ax, cm, pct, title) in enumerate(
         zip(
             axes,
-            [glm_cm, lgbm_cm],
+            [glm_tuned_cm, lgbm_tuned_cm],
             [glm_pct, lgbm_pct],
             ["Tuned GLM", "Tuned LGBM"],
         )
     ):
+        # Create heatmap
+        ax.imshow(cm, cmap="Blues", aspect="auto")
+
         # Add text annotations
         for i in range(2):
             for j in range(2):
@@ -44,8 +47,10 @@ def confusion_matrix():
                     fontsize=12,
                 )
 
-                # Add star to LGBM cells (idx=1)
-                if idx == 1:
+        # Add star to LGBM cells (idx=1)
+        if idx == 1:
+            for i in range(2):
+                for j in range(2):
                     ax.annotate(
                         "★",
                         xy=(j, i - 0.3),
@@ -80,4 +85,3 @@ def confusion_matrix():
 
     plt.suptitle("Confusion Matrices: Predicted vs Actual", y=1.02, fontsize=14)
     plt.tight_layout()
-    plt.show()
