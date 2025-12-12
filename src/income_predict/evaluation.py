@@ -9,7 +9,7 @@ current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
 sys.path.append(str(src_directory))
 
-from income_predict.plotting import plot_partial_dependence
+from income_predict.plotting import plot_confusion_matrices, plot_partial_dependence
 
 
 def evaluate_predictions(
@@ -45,7 +45,7 @@ def evaluate_predictions(
 
     assert (
         preds_column or model
-    ), "provide column name of the pre-computed predictions or   model to predict from."
+    ), "provide column name of the pre-computed predictions or model to predict from."
 
     if preds_column is None:
         preds = model.predict_proba(df)[:, 1]
@@ -123,11 +123,11 @@ def run_evaluation(test_df, target, glm_model, lgbm_model, train_X):
     print(lgbm_eval)
 
     # Confusion matrices
-    # plot_confusion_matrices(
-    #     test_eval_df[target].astype(int).values,
-    #     test_eval_df["glm_preds"].values,
-    #     test_eval_df["lgbm_preds"].values,
-    # )
+    plot_confusion_matrices(
+        test_eval_df[target].astype(int).values,
+        test_eval_df["glm_preds"].values,
+        test_eval_df["lgbm_preds"].values,
+    )
 
     # Feature importance
     preprocessor = glm_model.named_steps["preprocessor"]
