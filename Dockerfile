@@ -1,4 +1,4 @@
-FROM condaforge/miniforge3@sha256:b176780143fe0b367d71182b06fe19dc67c1faec1ca3f5812f59794d934c8fd1
+FROM condaforge/miniforge3:latest
 
 WORKDIR /app
 
