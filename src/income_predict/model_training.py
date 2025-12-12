@@ -1,3 +1,4 @@
+import os
 import random
 import sys
 import zlib
@@ -18,18 +19,13 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 RANDOM_SEED = 42
 
+# Docker-compatible path resolution
+if os.path.exists("/app/src/data"):
+    DATA_DIR = Path("/app/src/data")
+else:
+    DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
-def set_random_seeds(seed: int = RANDOM_SEED):
-    """Set random seeds for reproducibility."""
-    random.seed(seed)
-    np.random.seed(seed)
-    # Note: For full LGBM reproducibility, set environment variable
-    # PYTHONHASHSEED=0 before running the script
-
-
-current_file = Path(__file__).resolve()
-src_directory = current_file.parent.parent
-sys.path.append(str(src_directory))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 TARGET = "high_income"
 
@@ -53,7 +49,13 @@ categorical_features = [
     "native_country",
 ]
 
-DATA_DIR = src_directory / "data"
+
+def set_random_seeds(seed: int = RANDOM_SEED):
+    """Set random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    # Note: For full LGBM reproducibility, set environment variable
+    # PYTHONHASHSEED=0 before running the script
 
 
 def split_data_with_id_hash(data, test_ratio, id_column):
@@ -156,7 +158,7 @@ def run_training():
     random_search = RandomizedSearchCV(
         glm_pipeline,
         param_distributions=param_dist,
-        n_iter=50,
+        n_iter=20,
         cv=cv_strategy,
         scoring="accuracy",
         n_jobs=-1,
@@ -213,7 +215,7 @@ def run_training():
     random_search_lgbm = RandomizedSearchCV(
         lgbm_pipeline,
         param_distributions=param_dist,
-        n_iter=20,
+        n_iter=5,
         cv=cv_strategy,
         scoring="accuracy",
         n_jobs=-1,
