@@ -1,19 +1,18 @@
 name: d100_d300_env
 channels:
   - conda-forge
-  - defaults
 dependencies:
-  - python=3.9
-  - ucimlrepo
-  - numpy
-  - pandas
-  - pyarrow
-  - pip
-  - pre-commit
-  - black
-  - mypy
-  - flake8
-  - jupyter
-  - matplotlib
-  - seaborn
-  - polars
+  - python=3.11.*
+  - ucimlrepo=0.0.*
+  - numpy=1.26.*
+  - pandas=2.2.*
+  - pyarrow=19.*
+  - matplotlib=3.10.*
+  - seaborn=0.13.*
+  - polars=1.30.*
+  - scikit-learn=1.6.*
+  - lightgbm=4.*
+  - scipy=1.*
+  - joblib=1.*
+  - pip:
+    - pre-commit==3.4.0

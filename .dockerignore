@@ -1,0 +1,15 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.mypy_cache
+.pytest_cache
+.ipynb_checkpoints
+*.ipynb
+.coverage
+.env
+.venv
+venv
+*.log
+.DS_Store
