@@ -6,7 +6,7 @@ import numpy as np
 def confusion_matrix():
     """Plot confusion matrices for tuned GLM and tuned LGBM models."""
     # Hardcoded confusion matrix values for tuned models
-    glm_tuned_cm = np.array([[7026, 490], [1022, 1272]])
+    glm_tuned_cm = np.array([[7021, 495], [1025, 1269]])
     lgbm_tuned_cm = np.array([[7064, 452], [796, 1498]])
 
     # Calculate percentages

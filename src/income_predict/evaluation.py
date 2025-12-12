@@ -107,13 +107,11 @@ def run_evaluation(test_df, target, glm_model, lgbm_model, train_X):
     test_X = test_df.drop(columns=[target, "unique_id"])
     test_y = test_df[target]
 
-    # Add predictions to test dataframe
     test_eval_df = test_X.copy()
     test_eval_df[target] = test_y.values
     test_eval_df["glm_preds"] = glm_model.predict_proba(test_X)[:, 1]
     test_eval_df["lgbm_preds"] = lgbm_model.predict_proba(test_X)[:, 1]
 
-    # Evaluate both models
     glm_eval = evaluate_predictions(test_eval_df, target, preds_column="glm_preds")
     print("\nTuned GLM Evaluation Metrics:")
     print(glm_eval)
@@ -122,27 +120,28 @@ def run_evaluation(test_df, target, glm_model, lgbm_model, train_X):
     print("\nTuned LGBM Evaluation Metrics:")
     print(lgbm_eval)
 
-    # Confusion matrices
     plot_confusion_matrices(
         test_eval_df[target].astype(int).values,
         test_eval_df["glm_preds"].values,
         test_eval_df["lgbm_preds"].values,
     )
 
-    # Feature importance
-    preprocessor = glm_model.named_steps["preprocessor"]
-    transformed_names = preprocessor.get_feature_names_out()
+    glm_preprocessor = glm_model.named_steps["preprocessor"]
+    glm_transformed_names = glm_preprocessor.get_feature_names_out()
 
     glm_clf = glm_model.named_steps["classifier"]
     glm_importance = get_feature_importance(
-        np.abs(glm_clf.coef_).flatten(), transformed_names
+        np.abs(glm_clf.coef_).flatten(), glm_transformed_names
     )
     print("\nTuned GLM Feature Importance (Top 15):")
     print(glm_importance.head(15))
 
+    lgbm_preprocessor = lgbm_model.named_steps["preprocessor"]
+    lgbm_transformed_names = lgbm_preprocessor.get_feature_names_out()
+
     lgbm_clf = lgbm_model.named_steps["classifier"]
     lgbm_importance = get_feature_importance(
-        lgbm_clf.feature_importances_, transformed_names
+        lgbm_clf.feature_importances_, lgbm_transformed_names
     )
     print("\nTuned LGBM Feature Importance (Top 15):")
     print(lgbm_importance.head(15))

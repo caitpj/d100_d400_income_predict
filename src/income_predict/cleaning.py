@@ -20,7 +20,7 @@ COLUMN_RENAMING = {
     "income": "income",
 }
 
-COLUMNS_TO_DROP = ["fnlwgt", "education-num", "income"]
+COLUMNS_TO_DROP = ["fnlwgt", "education-num", "income", "marital_status"]
 
 EDUCATION_ORDER = {
     "Preschool": 1,
@@ -75,6 +75,12 @@ def binarize_sex(df: pd.DataFrame) -> pd.DataFrame:
     """Convert sex column to binary column: is_female."""
     df["is_female"] = df["sex"] == "Female"
     df = df.drop(columns=["sex"])
+    return df
+
+
+def add_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add interaction features for GLM modeling."""
+    df["age_x_education"] = df["age"] * df["education"]
     return df
 
 
@@ -167,6 +173,7 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     df = combine_married(df)
     df = binarize_race(df)
     df = binarize_sex(df)
+    df = add_interaction_features(df)
 
     return df
 

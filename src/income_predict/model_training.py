@@ -43,9 +43,11 @@ numeric_features = [
     "is_female",
 ]
 
+# GLM gets interaction features. LGBM learns them automatically
+numeric_features_glm = numeric_features + ["age_x_education"]
+
 categorical_features = [
     "work_class",
-    # 'marital_status',
     "occupation",
     "relationship",
     "native_country",
@@ -96,6 +98,10 @@ def run_training():
     train_y = train[TARGET]
     train_X = train.drop(columns=[TARGET, "unique_id"])
 
+    test_y = test[TARGET]
+    test_X = test.drop(columns=[TARGET, "unique_id"])
+
+    # GLM preprocessor (with interaction features)
     numeric_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -110,9 +116,9 @@ def run_training():
         ]
     )
 
-    preprocessor = ColumnTransformer(
+    glm_preprocessor = ColumnTransformer(
         transformers=[
-            ("num", numeric_transformer, numeric_features),
+            ("num", numeric_transformer, numeric_features_glm),
             ("cat", categorical_transformer, categorical_features),
         ]
     )
@@ -120,16 +126,13 @@ def run_training():
     # GLM Classifier Pipeline
     glm_pipeline = Pipeline(
         steps=[
-            ("preprocessor", preprocessor),
+            ("preprocessor", glm_preprocessor),
             (
                 "classifier",
                 SGDClassifier(loss="log_loss", max_iter=1000, random_state=RANDOM_SEED),
             ),
         ]
     )
-
-    test_y = test[TARGET]
-    test_X = test.drop(columns=[TARGET, "unique_id"])
 
     glm_pipeline.fit(train_X, train_y)
     preds = glm_pipeline.predict(test_X)
@@ -164,10 +167,18 @@ def run_training():
     print(f"GLM Tuned Accuracy: {random_search.best_score_:.4f}")
     print(f"Tuned Params: {random_search.best_params_}")
 
+    # LGBM preprocessor (without interaction features)
+    lgbm_preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", numeric_transformer, numeric_features),
+            ("cat", categorical_transformer, categorical_features),
+        ]
+    )
+
     # LGBM Classifier Pipeline
     lgbm_pipeline = Pipeline(
         steps=[
-            ("preprocessor", preprocessor),
+            ("preprocessor", lgbm_preprocessor),
             (
                 "classifier",
                 LGBMClassifier(
