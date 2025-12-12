@@ -1,9 +1,33 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.inspection import partial_dependence
 from sklearn.metrics import confusion_matrix
+
+_plot_counter = 0
+import os
+
+if os.path.exists("/app/src/data"):
+    PLOTS_DIR = Path("/app/src/data/plots")
+else:
+    PLOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "plots"
+
+
+def _save_plot(name=None):
+    """Save current figure to file instead of displaying."""
+    global _plot_counter
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    if name:
+        filepath = PLOTS_DIR / f"{name}.png"
+    else:
+        _plot_counter += 1
+        filepath = PLOTS_DIR / f"plot_{_plot_counter:03d}.png"
+    plt.savefig(filepath, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved plot to: {filepath}")
 
 
 def plot_partial_dependence(glm_model, lgbm_model, X, top_features):
@@ -89,7 +113,7 @@ def plot_partial_dependence(glm_model, lgbm_model, X, top_features):
 
     plt.suptitle("Partial Dependence Plots - Top Features (GLM vs LGBM)", y=1.02)
     plt.tight_layout()
-    plt.show()
+    _save_plot()
 
 
 def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
@@ -128,7 +152,7 @@ def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
 
     plt.suptitle("Confusion Matrices: Predicted vs Actual", y=1.02)
     plt.tight_layout()
-    plt.show()
+    _save_plot()
 
 
 def plot_distributions(df: pd.DataFrame):
@@ -141,7 +165,7 @@ def plot_distributions(df: pd.DataFrame):
             plt.figure(figsize=(8, 4))
             sns.histplot(df[col], kde=True)
             plt.title(f"Distribution of {col}")
-            plt.show()
+            _save_plot()
 
     categorical_cols = df.select_dtypes(include=["bool", "object", "category"]).columns
 
@@ -155,7 +179,7 @@ def plot_distributions(df: pd.DataFrame):
             plt.ylabel("Count")
             plt.xticks(rotation=45, ha="right")
             plt.tight_layout()
-            plt.show()
+            _save_plot()
 
 
 def plot_numeric_boxplots(df: pd.DataFrame) -> None:
@@ -179,7 +203,7 @@ def plot_numeric_boxplots(df: pd.DataFrame) -> None:
         plt.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.show()
+    _save_plot()
 
 
 def plot_target_distribution(df: pd.DataFrame, target: str = "income") -> None:
@@ -193,7 +217,7 @@ def plot_target_distribution(df: pd.DataFrame, target: str = "income") -> None:
     plt.ylabel("Count", fontsize=12)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    plt.show()
+    _save_plot()
 
 
 def plot_feature_correlations(
@@ -224,7 +248,7 @@ def plot_feature_correlations(
     plt.axvline(x=0, color="black", linestyle="-", linewidth=0.8)
     plt.grid(axis="x", alpha=0.3)
     plt.tight_layout()
-    plt.show()
+    _save_plot()
 
 
 def plot_numeric_strip(df: pd.DataFrame, target: str) -> None:
@@ -250,7 +274,7 @@ def plot_numeric_strip(df: pd.DataFrame, target: str) -> None:
             plt.grid(True, linestyle="--", alpha=0.3)
 
         plt.tight_layout()
-        plt.show()
+        _save_plot()
 
 
 def plot_categorical_stack(df: pd.DataFrame, target: str) -> None:
@@ -279,4 +303,4 @@ def plot_categorical_stack(df: pd.DataFrame, target: str) -> None:
             plt.grid(axis="y", linestyle="--", alpha=0.3)
 
         plt.tight_layout()
-        plt.show()
+        _save_plot()
