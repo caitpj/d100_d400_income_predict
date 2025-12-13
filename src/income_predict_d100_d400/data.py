@@ -10,7 +10,12 @@ from ucimlrepo import fetch_ucirepo
 
 
 def fetch_census_data() -> pd.DataFrame:
-    """Fetches the dataset from UCI with a loading animation."""
+    """
+    Fetches the dataset from UCI with a loading animation.
+
+    Returns:
+        A DataFrame containing the merged features and targets from the dataset.
+    """
     container: dict[str, Optional[Any]] = {"data": None, "error": None}
 
     def _download():
@@ -60,8 +65,13 @@ def run_data_fetch_pipeline(
     output_format: Literal["csv", "parquet"] = "parquet"
 ) -> Path:
     """
-    Checks if data exists locally. If not, downloads Census Income dataset
-    and saves it to the data directory relative to the project root.
+    Checks if data exists locally. If not, downloads Census Income dataset.
+
+    Parameters:
+        output_format: The format to save the data in ('csv' or 'parquet').
+
+    Returns:
+        The Path to the saved dataset file.
     """
     if (Path.cwd() / "src").exists():
         data_dir = Path.cwd() / "src" / "data"
@@ -75,9 +85,9 @@ def run_data_fetch_pipeline(
     if output_path.exists():
         print(
             f"""
-            No need to download since data already exists at:
-            {data_dir.name}/{output_path.name} (good, because it means
-            we're less likley to get blocked by UCI for spamming downloads)
+No need to download since data already exists at:
+{data_dir.name}/{output_path.name} (good, because it means
+we're less likley to get blocked by UCI for spamming downloads)
             """
         )
         return output_path

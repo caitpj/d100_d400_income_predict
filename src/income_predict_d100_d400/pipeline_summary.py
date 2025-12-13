@@ -25,7 +25,12 @@ EXPECTED_ARTIFACTS: Dict[str, Path] = {
 def check_files(artifacts: Dict[str, Path]) -> Dict[str, Tuple[bool, str]]:
     """
     Checks if files exist and resolves their relative paths.
-    Returns a dict mapping description to (exists_bool, display_path_string).
+
+    Parameters:
+        artifacts: Dictionary mapping descriptions to file paths.
+
+    Returns:
+        A dictionary mapping description to (exists_bool, display_path_string).
     """
     results = {}
 
@@ -44,8 +49,7 @@ def check_files(artifacts: Dict[str, Path]) -> Dict[str, Tuple[bool, str]]:
 
 def print_pipeline_summary() -> None:
     """
-    Orchestrates the checking of artifacts and prints a formatted
-    summary table.
+    Orchestrates the checking of artifacts and prints a formatted summary table.
     """
     results = check_files(EXPECTED_ARTIFACTS)
 

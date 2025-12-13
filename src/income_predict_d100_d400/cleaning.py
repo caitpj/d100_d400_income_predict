@@ -43,20 +43,44 @@ EDUCATION_ORDER = {
 
 
 def encode_education(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert education to ordinal numeric values."""
+    """
+    Convert education to ordinal numeric values.
+
+    Parameters:
+        df: The DataFrame containing the 'education' column.
+
+    Returns:
+        The DataFrame with the 'education' column mapped to integers.
+    """
     df["education"] = df["education"].map(EDUCATION_ORDER)
     return df
 
 
 def combine_capital(df: pd.DataFrame) -> pd.DataFrame:
-    """Combine capital_gain and capital_loss into single capital_net column."""
+    """
+    Combine capital_gain and capital_loss into single capital_net column.
+
+    Parameters:
+        df: The DataFrame containing 'capital_gain' and 'capital_loss'.
+
+    Returns:
+        The DataFrame with a new 'capital_net' column and original columns removed.
+    """
     df["capital_net"] = df["capital_gain"] - df["capital_loss"]
     df = df.drop(columns=["capital_gain", "capital_loss"])
     return df
 
 
 def combine_married(df: pd.DataFrame) -> pd.DataFrame:
-    """Combine Husband and Wife into Married in relationship column."""
+    """
+    Combine Husband and Wife into Married in relationship column.
+
+    Parameters:
+        df: The DataFrame containing the 'relationship' column.
+
+    Returns:
+        The DataFrame with updated 'relationship' values.
+    """
     df["relationship"] = df["relationship"].replace(
         {"Husband": "Married", "Wife": "Married"}
     )
@@ -64,7 +88,15 @@ def combine_married(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def binarize_race(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert race column to binary columns: is_white and is_black."""
+    """
+    Convert race column to binary columns: is_white and is_black.
+
+    Parameters:
+        df: The DataFrame containing the 'race' column.
+
+    Returns:
+        The DataFrame with 'is_white' and 'is_black' columns added and 'race' removed.
+    """
     df["is_white"] = df["race"] == "White"
     df["is_black"] = df["race"] == "Black"
     df = df.drop(columns=["race"])
@@ -72,14 +104,30 @@ def binarize_race(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def binarize_sex(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert sex column to binary column: is_female."""
+    """
+    Convert sex column to binary column: is_female.
+
+    Parameters:
+        df: The DataFrame containing the 'sex' column.
+
+    Returns:
+        The DataFrame with 'is_female' column added and 'sex' removed.
+    """
     df["is_female"] = df["sex"] == "Female"
     df = df.drop(columns=["sex"])
     return df
 
 
 def add_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Add interaction features for GLM modeling."""
+    """
+    Add interaction features for GLM modeling.
+
+    Parameters:
+        df: The DataFrame containing 'age' and 'education'.
+
+    Returns:
+        The DataFrame with a new 'age_x_education' column.
+    """
     df["age_x_education"] = df["age"] * df["education"]
     return df
 
@@ -87,6 +135,12 @@ def add_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
 def add_unique_id(df: pd.DataFrame) -> pd.DataFrame:
     """
     Adds a unique_id column to the dataframe as the first column.
+
+    Parameters:
+        df: The input DataFrame.
+
+    Returns:
+        The DataFrame with a 'unique_id' column inserted at index 0.
     """
     df.insert(0, "unique_id", range(len(df)))
     return df
@@ -98,8 +152,15 @@ def clean_columns(
     columns_to_drop: list = COLUMNS_TO_DROP,
 ) -> pd.DataFrame:
     """
-    Renames a standard set of columns to use snake_case and drops
-    a predefined list of columns (fnlwgt, education-num, income).
+    Renames a standard set of columns to use snake_case and drops predefined columns.
+
+    Parameters:
+        df: The input DataFrame.
+        renaming_map: A dictionary mapping old column names to new ones.
+        columns_to_drop: A list of column names to remove.
+
+    Returns:
+        The cleaned DataFrame with renamed columns and dropped features.
     """
     columns_to_drop_in_df = [col for col in columns_to_drop if col in df.columns]
     if columns_to_drop_in_df:
@@ -112,8 +173,13 @@ def clean_columns(
 
 def clean_and_binarize_income(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Cleans the 'income' column and converts it into a boolean field
-    (True for '>50K', False for '=<50K').
+    Cleans the 'income' column and converts it into a boolean field.
+
+    Parameters:
+        df: The DataFrame containing the 'income' column.
+
+    Returns:
+        The DataFrame with a cleaned 'income' column and a new 'high_income' boolean column.
     """
     income_col = "income"
     high_income_col = "high_income"
@@ -127,6 +193,12 @@ def clean_and_binarize_income(df: pd.DataFrame) -> pd.DataFrame:
 def replace_question_marks_with_nan(df: pd.DataFrame) -> pd.DataFrame:
     """
     Replaces '?' with np.nan across all columns in the dataframe.
+
+    Parameters:
+        df: The input DataFrame.
+
+    Returns:
+        The DataFrame with '?' strings replaced by numpy NaNs.
     """
     return df.replace("?", np.nan)
 
@@ -134,7 +206,12 @@ def replace_question_marks_with_nan(df: pd.DataFrame) -> pd.DataFrame:
 def trim_string(value: Any) -> Any:
     """
     Trims leading and trailing whitespace from a single string.
-    Returns the original value if it's not a string (e.g., NaN or numbers).
+
+    Parameters:
+        value: The value to trim.
+
+    Returns:
+        The trimmed string, or the original value if it is not a string.
     """
     if isinstance(value, str):
         return value.strip()
@@ -144,8 +221,13 @@ def trim_string(value: Any) -> Any:
 
 def trim_dataframe_whitespace(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Automatically detects string (object) columns in a Pandas DataFrame
-    and strips whitespace from all values.
+    Automatically detects string columns and strips whitespace from all values.
+
+    Parameters:
+        df: The input DataFrame.
+
+    Returns:
+        The DataFrame with whitespace stripped from all string columns.
     """
     string_columns = df.select_dtypes(include=["object", "string"]).columns
 
@@ -161,6 +243,12 @@ def trim_dataframe_whitespace(df: pd.DataFrame) -> pd.DataFrame:
 def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     """
     Master function that runs all cleaning steps in a logical order.
+
+    Parameters:
+        df: The raw input DataFrame.
+
+    Returns:
+        The fully cleaned and preprocessed DataFrame.
     """
     df = df.copy()
     df = add_unique_id(df)
@@ -178,9 +266,12 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def run_cleaning_pipeline(df: pd.DataFrame) -> pd.DataFrame:
+def run_cleaning_pipeline(df: pd.DataFrame) -> None:
     """
     Runs full cleaning pipeline and saves result in parquet format.
+
+    Parameters:
+        df: The raw input DataFrame.
     """
     df = full_clean(df)
 

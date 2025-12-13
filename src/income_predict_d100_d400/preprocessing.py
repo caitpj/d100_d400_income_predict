@@ -14,9 +14,13 @@ import income_predict_d100_d400.plotting as plotting
 
 def get_data_description(df: pd.DataFrame) -> dict:
     """
-    1. Describe your data.
-    Returns a dictionary containing data types and descriptive statistics.
-    Plots the distribution of all columns.
+    Generates a description of the data and plots distributions.
+
+    Parameters:
+        df: The DataFrame to analyze.
+
+    Returns:
+        A dictionary containing data types and a dataframe of descriptive statistics.
     """
     plotting.plot_distributions(df)
 
@@ -25,9 +29,14 @@ def get_data_description(df: pd.DataFrame) -> dict:
 
 def get_target_distribution(df: pd.DataFrame, target: str = "income") -> pd.DataFrame:
     """
-    2. What is the distribution of the target variable?
-    Returns the count and percentage distribution of 'high_income'.
-    Side effect: Displays/Saves a bar chart of the distribution.
+    Calculates the distribution of the target variable.
+
+    Parameters:
+        df: The DataFrame containing the target column.
+        target: The name of the target column.
+
+    Returns:
+        A DataFrame with the count and percentage distribution of the target.
     """
     if target not in df.columns:
         raise ValueError(f"Column '{target}' not found in dataframe.")
@@ -44,10 +53,13 @@ def get_target_distribution(df: pd.DataFrame, target: str = "income") -> pd.Data
 
 def get_outliers_summary(df: pd.DataFrame) -> pd.DataFrame:
     """
-    3. Do we face outliers and missing values?
-    Identifies outliers in numeric columns using the IQR method.
-    Returns a summary including outlier counts, bounds, and missing values.
-    For non-numeric columns, only reports missing values if present.
+    Identifies outliers in numeric columns using the IQR method and checks for missing values.
+
+    Parameters:
+        df: The DataFrame to analyze.
+
+    Returns:
+        A DataFrame summarizing outlier counts, bounds, and missing values for each column.
     """
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     non_numeric_cols = df.select_dtypes(exclude=[np.number]).columns
@@ -117,12 +129,12 @@ def calculate_categorical_correlations(
     """
     Calculate Cramér's V correlation between categorical features and the target.
 
-    Args:
-        df: DataFrame with categorical features
-        target: Target column name
+    Parameters:
+        df: The DataFrame containing categorical features.
+        target: The name of the target column.
 
     Returns:
-        Series of Cramér's V values for each categorical feature
+        A Series of Cramér's V values for each categorical feature.
     """
     if target not in df.columns:
         raise ValueError(f"Column '{target}' not found in dataframe.")
@@ -151,8 +163,14 @@ def calculate_categorical_correlations(
 
 def get_feature_correlations(df: pd.DataFrame, target="income") -> pd.Series:
     """
-    4. How do specific features correlate with the target variable?
-    Calculates Pearson correlation of numeric features with 'high_income'.
+    Calculates Pearson correlation for numeric features and Cramér's V for categorical features.
+
+    Parameters:
+        df: The DataFrame to analyze.
+        target: The target variable name.
+
+    Returns:
+        A dictionary containing two Series: 'numeric' correlations and 'categorical' correlations.
     """
     results = {}
 
@@ -181,9 +199,13 @@ def get_feature_correlations(df: pd.DataFrame, target="income") -> pd.Series:
 
 def identify_features_by_type(df: pd.DataFrame) -> dict:
     """
-    5. What features can we use for the specific prediction task?
-    Separates available columns into 'numeric' and 'categorical' lists,
-    excluding 'high_income'.
+    Separates available columns into 'numeric' and 'categorical' lists.
+
+    Parameters:
+        df: The DataFrame to examine.
+
+    Returns:
+        A dictionary with keys 'numeric' and 'categorical', containing lists of column names.
     """
     target_col = "high_income"
     features = df.drop(columns=[target_col], errors="ignore")

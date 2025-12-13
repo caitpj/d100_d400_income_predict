@@ -51,7 +51,12 @@ CATEGORICAL_FEATURES = [
 
 
 def set_random_seeds(seed: int = RANDOM_SEED) -> None:
-    """Set random seeds for reproducibility."""
+    """
+    Set random seeds for reproducibility.
+
+    Parameters:
+        seed: The random seed to use.
+    """
     random.seed(seed)
     np.random.seed(seed)
     # Note: For full LGBM reproducibility, set environment variable
@@ -61,7 +66,17 @@ def set_random_seeds(seed: int = RANDOM_SEED) -> None:
 def split_data_with_id_hash(
     data: pd.DataFrame, test_ratio: float, id_column: str
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Split data based on a hash of an identifier column."""
+    """
+    Split data based on a hash of an identifier column.
+
+    Parameters:
+        data: The input DataFrame.
+        test_ratio: The proportion of data to put in the test set.
+        id_column: The name of the unique identifier column.
+
+    Returns:
+        A tuple containing (train_set, test_set) DataFrames.
+    """
 
     def test_set_check(identifier: Any) -> bool:
         return (
@@ -75,7 +90,12 @@ def split_data_with_id_hash(
 
 
 def run_split() -> None:
-    """Split data into train/test and save to parquet."""
+    """
+    Split data into train/test and save to parquet.
+
+    Reads the cleaned parquet file, splits it using hash-based splitting,
+    and saves 'train_split.parquet' and 'test_split.parquet'.
+    """
     parquet_path = DATA_DIR / "cleaned_census_income.parquet"
     df = pd.read_parquet(parquet_path)
 
@@ -86,7 +106,12 @@ def run_split() -> None:
 
 
 def load_split() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Load train/test split from parquet."""
+    """
+    Load train/test split from parquet.
+
+    Returns:
+        A tuple containing the train and test DataFrames.
+    """
     train = pd.read_parquet(DATA_DIR / "train_split.parquet")
     test = pd.read_parquet(DATA_DIR / "test_split.parquet")
     return train, test
@@ -95,7 +120,16 @@ def load_split() -> Tuple[pd.DataFrame, pd.DataFrame]:
 def create_preprocessor(
     numeric_features: List[str], categorical_features: List[str]
 ) -> ColumnTransformer:
-    """Create a sklearn ColumnTransformer for numeric and categorical data."""
+    """
+    Create a sklearn ColumnTransformer for numeric and categorical data.
+
+    Parameters:
+        numeric_features: List of numeric column names.
+        categorical_features: List of categorical column names.
+
+    Returns:
+        A ColumnTransformer configured with imputation, scaling, and one-hot encoding.
+    """
     numeric_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -130,7 +164,19 @@ def train_and_tune_model(
 ) -> BaseEstimator:
     """
     Fits a baseline model, evaluates it, and then runs RandomizedSearchCV.
-    Returns the best estimator found.
+
+    Parameters:
+        model_name: Name of the model (for logging).
+        pipeline: The sklearn Pipeline to tune.
+        param_dist: Dictionary of parameters for RandomizedSearchCV.
+        train_X: Training features.
+        train_y: Training target.
+        test_X: Test features (used for baseline evaluation only).
+        test_y: Test target (used for baseline evaluation only).
+        n_iter: Number of parameter settings that are sampled.
+
+    Returns:
+        The best estimator found by RandomizedSearchCV.
     """
     print(f"\nProcessing {model_name}...")
 
@@ -171,6 +217,23 @@ def execute_model_pipeline(
     test_y: pd.Series,
     n_iter: int,
 ) -> BaseEstimator:
+    """
+    Constructs and executes the training and tuning pipeline for a specific model.
+
+    Parameters:
+        model_name: Name of the model.
+        classifier: The sklearn estimator to use.
+        numeric_features: List of numeric features to use.
+        param_dist: Parameter distribution for tuning.
+        train_X: Training features.
+        train_y: Training target.
+        test_X: Test features.
+        test_y: Test target.
+        n_iter: Number of iterations for tuning.
+
+    Returns:
+        The best tuned model pipeline.
+    """
     preprocessor = create_preprocessor(numeric_features, CATEGORICAL_FEATURES)
 
     pipeline = Pipeline(
@@ -193,6 +256,12 @@ def execute_model_pipeline(
 
 
 def run_training() -> None:
+    """
+    Main training execution function.
+
+    Loads split data, trains and tunes both GLM and LGBM models,
+    and saves the best models and training features to disk.
+    """
     set_random_seeds(RANDOM_SEED)
 
     train, test = load_split()
@@ -243,7 +312,13 @@ def run_training() -> None:
 
 
 def load_training_outputs() -> Dict[str, Union[BaseEstimator, pd.DataFrame]]:
-    """Load trained models and data for evaluation."""
+    """
+    Load trained models and data for evaluation.
+
+    Returns:
+        A dictionary containing the trained GLM model, LGBM model,
+        training features, and test dataset.
+    """
     return {
         "glm_model": joblib.load(DATA_DIR / "glm_model.joblib"),
         "lgbm_model": joblib.load(DATA_DIR / "lgbm_model.joblib"),

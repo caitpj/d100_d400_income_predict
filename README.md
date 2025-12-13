@@ -7,7 +7,7 @@ This repository provides a reproducible Docker environment pre-configured with e
 The main analysis can be found at: `src/notebooks/final_report.ipynb`
 
 There is are other sub-analysis files, they are:
-- `src/tests/benchmark_pandas_polars.py` script that highlights the performance differences between Polars and Pandas on loading and cleaning the dataset.
+- `src/tests/benchmark_pandas_polars.py` script that highlights the performance differences between Polars and Pandas on loading and cleaning this specific dataset.
 - `src/notebooks/eda_cleaning.ipynb` exploratory data analysis. Lots more charts and info on how and why certain decisions were made in building the models.
 
 ## Installation

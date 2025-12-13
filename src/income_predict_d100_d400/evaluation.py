@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Any, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -16,44 +17,37 @@ from income_predict_d100_d400.plotting import (
 
 
 def evaluate_predictions(
-    df,
-    outcome_column,
+    df: pd.DataFrame,
+    outcome_column: str,
     *,
-    preds_column=None,
-    model=None,
-    sample_weight_column=None,
-):
-    """Evaluate predictions against actual outcomes for binary classification.
+    preds_column: Optional[str] = None,
+    model: Optional[Any] = None,
+    sample_weight_column: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Evaluate predictions against actual outcomes for binary classification.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame used for evaluation
-    outcome_column : str
-        Name of outcome column (binary: 0/1 or True/False)
-    preds_column : str, optional
-        Name of predictions column (probabilities), by default None
-    model :
-        Fitted model with predict_proba method, by default None
-    sample_weight_column : str, optional
-        Name of sample weight column, by default None
+    Parameters:
+        df: DataFrame used for evaluation.
+        outcome_column: Name of outcome column (binary: 0/1 or True/False).
+        preds_column: Name of predictions column (probabilities).
+        model: Fitted model with predict_proba method (optional).
+        sample_weight_column: Name of sample weight column (optional).
 
-    Returns
-    -------
-    evals
-        DataFrame containing metrics
+    Returns:
+        A DataFrame containing evaluation metrics (mean_preds, mse, gini, etc.).
     """
 
     evals = {}
 
-    assert (
-        preds_column or model
-    ), "provide column name of the pre-computed predictions or model to predict from."
-
-    if preds_column is None:
+    if preds_column is not None:
+        preds = df[preds_column]
+    elif model is not None:
         preds = model.predict_proba(df)[:, 1]
     else:
-        preds = df[preds_column]
+        raise ValueError(
+            "provide column name of the pre-computed predictions or model to predict from."
+        )
 
     if sample_weight_column:
         weights = df[sample_weight_column]
@@ -81,7 +75,22 @@ def evaluate_predictions(
     return pd.DataFrame(evals, index=[0]).T
 
 
-def lorenz_curve(y_true, y_pred, exposure):
+def lorenz_curve(
+    y_true: np.ndarray, y_pred: np.ndarray, exposure: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Calculates the Lorenz curve points for Gini coefficient computation.
+
+    Parameters:
+        y_true: Array of true target values.
+        y_pred: Array of predicted values (risk scores).
+        exposure: Array of weights or exposure values.
+
+    Returns:
+        A tuple containing:
+            - cumulated_samples: x-axis coordinates (cumulative population).
+            - cumulated_claim_amount: y-axis coordinates (cumulative target).
+    """
     y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
     exposure = np.asarray(exposure)
 
@@ -95,8 +104,19 @@ def lorenz_curve(y_true, y_pred, exposure):
     return cumulated_samples, cumulated_claim_amount
 
 
-def get_feature_importance(importances, feature_names):
-    """Return sorted DataFrame of feature importances."""
+def get_feature_importance(
+    importances: np.ndarray, feature_names: np.ndarray
+) -> pd.DataFrame:
+    """
+    Return sorted DataFrame of feature importances.
+
+    Parameters:
+        importances: Array of importance scores.
+        feature_names: Array of feature names.
+
+    Returns:
+        DataFrame with 'feature' and 'importance' columns, sorted by importance.
+    """
     return (
         pd.DataFrame({"feature": feature_names, "importance": importances})
         .sort_values("importance", ascending=False)
@@ -104,8 +124,23 @@ def get_feature_importance(importances, feature_names):
     )
 
 
-def run_evaluation(test_df, target, glm_model, lgbm_model, train_features):
-    """Run full evaluation pipeline for GLM and LGBM models."""
+def run_evaluation(
+    test_df: pd.DataFrame,
+    target: str,
+    glm_model: Any,
+    lgbm_model: Any,
+    train_features: pd.DataFrame,
+) -> None:
+    """
+    Run full evaluation pipeline for GLM and LGBM models.
+
+    Parameters:
+        test_df: The test dataset.
+        target: The name of the target column.
+        glm_model: The trained GLM model.
+        lgbm_model: The trained LGBM model.
+        train_features: The training features (used for partial dependence plots).
+    """
 
     test_X = test_df.drop(columns=[target, "unique_id"])
     test_y = test_df[target]

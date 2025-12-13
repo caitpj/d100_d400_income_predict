@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,8 +16,13 @@ else:
     PLOTS_DIR = Path.cwd() / "data" / "plots"
 
 
-def _save_plot(name=None):
-    """Save current figure to file instead of displaying."""
+def _save_plot(name: Optional[str] = None) -> None:
+    """
+    Save current figure to file instead of displaying.
+
+    Parameters:
+        name: Optional name for the file. If None, uses a counter.
+    """
     global _plot_counter
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     if name:
@@ -29,8 +35,21 @@ def _save_plot(name=None):
     print(f"Saved plot to: {filepath}")
 
 
-def plot_partial_dependence(glm_model, lgbm_model, X, top_features):
-    """Plot partial dependence for top features with both GLM and LGBM models."""
+def plot_partial_dependence(
+    glm_model: Any,
+    lgbm_model: Any,
+    X: pd.DataFrame,
+    top_features: List[str],
+) -> None:
+    """
+    Plot partial dependence for top features with both GLM and LGBM models.
+
+    Parameters:
+        glm_model: The fitted GLM model.
+        lgbm_model: The fitted LGBM model.
+        X: The dataset used for computing partial dependence.
+        top_features: List of feature names to plot.
+    """
     n_features = len(top_features)
     _, axes = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
 
@@ -115,8 +134,17 @@ def plot_partial_dependence(glm_model, lgbm_model, X, top_features):
     _save_plot(name="feature_dependence_plot")
 
 
-def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
-    """Plots confusion matrix heatmaps for GLM and LGBM side by side."""
+def plot_confusion_matrices(
+    y_true: np.ndarray, glm_preds: np.ndarray, lgbm_preds: np.ndarray
+) -> None:
+    """
+    Plots confusion matrix heatmaps for GLM and LGBM side by side.
+
+    Parameters:
+        y_true: Array of true labels.
+        glm_preds: Array of GLM prediction probabilities.
+        lgbm_preds: Array of LGBM prediction probabilities.
+    """
     _, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     for ax, preds, title in zip(
@@ -154,8 +182,13 @@ def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
     _save_plot(name="classification_plot")
 
 
-def plot_distributions(df: pd.DataFrame):
-    """Plots histograms for numeric columns and bar charts for boolean/string columns."""
+def plot_distributions(df: pd.DataFrame) -> None:
+    """
+    Plots histograms for numeric columns and bar charts for boolean/string columns.
+
+    Parameters:
+        df: The DataFrame containing the data to plot.
+    """
     numeric_cols = df.select_dtypes(include=["number"]).columns
     non_binary_numeric = [col for col in numeric_cols if df[col].nunique() > 2]
 
@@ -184,6 +217,9 @@ def plot_distributions(df: pd.DataFrame):
 def plot_numeric_boxplots(df: pd.DataFrame) -> None:
     """
     Visualizes numeric columns using boxplots to identify outliers visually.
+
+    Parameters:
+        df: The DataFrame containing numeric columns.
     """
     numeric_cols = df.select_dtypes(include=[np.number]).columns
 
@@ -208,6 +244,10 @@ def plot_numeric_boxplots(df: pd.DataFrame) -> None:
 def plot_target_distribution(df: pd.DataFrame, target: str = "income") -> None:
     """
     Plots the distribution of the target variable from the summary dataframe.
+
+    Parameters:
+        df: Summary DataFrame containing 'Count' and 'Percent' columns.
+        target: The name of the target variable.
     """
     plt.figure(figsize=(10, 6))
     sns.barplot(x=df.index.astype(str), y=df["Count"])
@@ -224,6 +264,11 @@ def plot_feature_correlations(
 ) -> None:
     """
     Plots a horizontal bar chart of feature correlations with the target variable.
+
+    Parameters:
+        correlations: Series containing correlation coefficients.
+        target: Name of the target variable.
+        title_suffix: Optional suffix for the plot title.
     """
     correlations_sorted = correlations.sort_values()
 
@@ -253,6 +298,10 @@ def plot_feature_correlations(
 def plot_numeric_strip(df: pd.DataFrame, target: str) -> None:
     """
     Plots strip plots for all numeric features in the DataFrame against the target.
+
+    Parameters:
+        df: The DataFrame containing data.
+        target: The name of the target variable.
     """
     numeric_features = df.select_dtypes(include=[np.number]).columns.tolist()
     if target in numeric_features:
@@ -279,6 +328,10 @@ def plot_numeric_strip(df: pd.DataFrame, target: str) -> None:
 def plot_categorical_stack(df: pd.DataFrame, target: str) -> None:
     """
     Plots 100% stacked bar charts for categorical features using default package colors.
+
+    Parameters:
+        df: The DataFrame containing data.
+        target: The name of the target variable.
     """
     cat_features = df.select_dtypes(include=["object", "category"]).columns.tolist()
     if target in cat_features:
