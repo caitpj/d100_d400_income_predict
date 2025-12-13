@@ -2,12 +2,14 @@ import random
 import sys
 import zlib
 from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union
 
 import joblib
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from scipy.stats import loguniform, randint, uniform
+from sklearn.base import BaseEstimator
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import SGDClassifier
@@ -27,7 +29,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 TARGET = "high_income"
 
-numeric_features = [
+NUMERIC_FEATURES = [
     "age",
     "capital_net",
     "hours_per_week",
@@ -38,9 +40,9 @@ numeric_features = [
 ]
 
 # GLM gets interaction features. LGBM learns them automatically
-numeric_features_glm = numeric_features + ["age_x_education"]
+NUMERIC_FEATURES_GLM = NUMERIC_FEATURES + ["age_x_education"]
 
-categorical_features = [
+CATEGORICAL_FEATURES = [
     "work_class",
     "occupation",
     "relationship",
@@ -48,7 +50,7 @@ categorical_features = [
 ]
 
 
-def set_random_seeds(seed: int = RANDOM_SEED):
+def set_random_seeds(seed: int = RANDOM_SEED) -> None:
     """Set random seeds for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
@@ -56,8 +58,12 @@ def set_random_seeds(seed: int = RANDOM_SEED):
     # PYTHONHASHSEED=0 before running the script
 
 
-def split_data_with_id_hash(data, test_ratio, id_column):
-    def test_set_check(identifier):
+def split_data_with_id_hash(
+    data: pd.DataFrame, test_ratio: float, id_column: str
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Split data based on a hash of an identifier column."""
+
+    def test_set_check(identifier: Any) -> bool:
         return (
             zlib.crc32(bytes(str(identifier), "utf-8")) & 0xFFFFFFFF
             < test_ratio * 2**32
@@ -68,7 +74,7 @@ def split_data_with_id_hash(data, test_ratio, id_column):
     return data.loc[~in_test_set], data.loc[in_test_set]
 
 
-def run_split():
+def run_split() -> None:
     """Split data into train/test and save to parquet."""
     parquet_path = DATA_DIR / "cleaned_census_income.parquet"
     df = pd.read_parquet(parquet_path)
@@ -79,26 +85,17 @@ def run_split():
     test.to_parquet(DATA_DIR / "test_split.parquet", index=False)
 
 
-def load_split():
+def load_split() -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Load train/test split from parquet."""
     train = pd.read_parquet(DATA_DIR / "train_split.parquet")
     test = pd.read_parquet(DATA_DIR / "test_split.parquet")
     return train, test
 
 
-def run_training():
-    """Train GLM and LGBM models and save to disk."""
-    set_random_seeds(RANDOM_SEED)
-
-    train, test = load_split()
-
-    train_y = train[TARGET]
-    train_X = train.drop(columns=[TARGET, "unique_id"])
-
-    test_y = test[TARGET]
-    test_X = test.drop(columns=[TARGET, "unique_id"])
-
-    # GLM preprocessor (with interaction features)
+def create_preprocessor(
+    numeric_features: List[str], categorical_features: List[str]
+) -> ColumnTransformer:
+    """Create a sklearn ColumnTransformer for numeric and categorical data."""
     numeric_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -113,124 +110,139 @@ def run_training():
         ]
     )
 
-    glm_preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", numeric_transformer, numeric_features_glm),
-            ("cat", categorical_transformer, categorical_features),
-        ]
-    )
-
-    # GLM Classifier Pipeline
-    glm_pipeline = Pipeline(
-        steps=[
-            ("preprocessor", glm_preprocessor),
-            (
-                "classifier",
-                SGDClassifier(loss="log_loss", max_iter=1000, random_state=RANDOM_SEED),
-            ),
-        ]
-    )
-
-    glm_pipeline.fit(train_X, train_y)
-    preds = glm_pipeline.predict(test_X)
-    acc = accuracy_score(test_y, preds)
-    baseline_clf = glm_pipeline.named_steps["classifier"]
-    baseline_params = {
-        "classifier__alpha": baseline_clf.alpha,
-        "classifier__l1_ratio": baseline_clf.l1_ratio,
-    }
-
-    print(f"GLM Baseline Accuracy: {acc:.4f}")
-    print(f"Baseline Params: {baseline_params}")
-
-    # Tuning GLM with Randomized Search
-    param_dist = {
-        "classifier__l1_ratio": uniform(0, 1),
-        "classifier__alpha": loguniform(1e-4, 1e-1),
-    }
-    cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)
-
-    random_search = RandomizedSearchCV(
-        glm_pipeline,
-        param_distributions=param_dist,
-        n_iter=20,
-        cv=cv_strategy,
-        scoring="accuracy",
-        n_jobs=-1,
-        random_state=RANDOM_SEED,
-    )
-    random_search.fit(train_X, train_y)
-
-    print(f"GLM Tuned Accuracy: {random_search.best_score_:.4f}")
-    print(f"Tuned Params: {random_search.best_params_}")
-
-    # LGBM preprocessor (without interaction features)
-    lgbm_preprocessor = ColumnTransformer(
+    return ColumnTransformer(
         transformers=[
             ("num", numeric_transformer, numeric_features),
             ("cat", categorical_transformer, categorical_features),
         ]
     )
 
-    # LGBM Classifier Pipeline
-    lgbm_pipeline = Pipeline(
-        steps=[
-            ("preprocessor", lgbm_preprocessor),
-            (
-                "classifier",
-                LGBMClassifier(
-                    objective="binary", random_state=RANDOM_SEED, verbose=-1
-                ),
-            ),
-        ]
-    )
 
-    lgbm_pipeline.fit(train_X, train_y)
-    preds = lgbm_pipeline.predict(test_X)
+def train_and_tune_model(
+    model_name: str,
+    pipeline: Pipeline,
+    param_dist: Dict[str, Any],
+    train_X: pd.DataFrame,
+    train_y: pd.Series,
+    test_X: pd.DataFrame,
+    test_y: pd.Series,
+    n_iter: int = 10,
+) -> BaseEstimator:
+    """
+    Fits a baseline model, evaluates it, and then runs RandomizedSearchCV.
+    Returns the best estimator found.
+    """
+    print(f"\nProcessing {model_name}...")
+
+    pipeline.fit(train_X, train_y)
+    preds = pipeline.predict(test_X)
     acc = accuracy_score(test_y, preds)
-    baseline_clf = lgbm_pipeline.named_steps["classifier"]
-    baseline_params = {
-        "classifier__learning_rate": baseline_clf.learning_rate,
-        "classifier__min_child_weight": baseline_clf.min_child_weight,
-        "classifier__n_estimators": baseline_clf.n_estimators,
-        "classifier__num_leaves": baseline_clf.num_leaves,
-    }
 
-    print(f"LGBM Baseline Accuracy: {acc:.4f}")
-    print(f"Baseline Params: {baseline_params}")
+    print(f"{model_name} Baseline Accuracy: {acc:.4f}")
 
-    # Tuning LGBM with Randomized Search
-    param_dist = {
-        "classifier__learning_rate": loguniform(0.01, 0.2),
-        "classifier__n_estimators": randint(50, 200),
-        "classifier__num_leaves": randint(10, 60),
-        "classifier__min_child_weight": loguniform(0.0001, 0.002),
-    }
     cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)
-    random_search_lgbm = RandomizedSearchCV(
-        lgbm_pipeline,
+
+    random_search = RandomizedSearchCV(
+        pipeline,
         param_distributions=param_dist,
-        n_iter=5,
+        n_iter=n_iter,
         cv=cv_strategy,
         scoring="accuracy",
         n_jobs=-1,
         random_state=RANDOM_SEED,
     )
-    random_search_lgbm.fit(train_X, train_y)
 
-    print(f"LGBM Tuned Accuracy: {random_search_lgbm.best_score_:.4f}")
-    print(f"Tuned Params: {random_search_lgbm.best_params_}")
+    random_search.fit(train_X, train_y)
 
-    # Save models and train_X
-    glm_model = random_search.best_estimator_
-    lgbm_model = random_search_lgbm.best_estimator_
+    print(f"{model_name} Tuned Accuracy: {random_search.best_score_:.4f}")
+    print(f"Tuned Params: {random_search.best_params_}")
 
-    joblib.dump(glm_model, DATA_DIR / "glm_model.joblib")
-    joblib.dump(lgbm_model, DATA_DIR / "lgbm_model.joblib")
+    return random_search.best_estimator_
+
+
+def execute_model_pipeline(
+    model_name: str,
+    classifier: BaseEstimator,
+    numeric_features: List[str],
+    param_dist: Dict[str, Any],
+    train_X: pd.DataFrame,
+    train_y: pd.Series,
+    test_X: pd.DataFrame,
+    test_y: pd.Series,
+    n_iter: int,
+) -> BaseEstimator:
+    preprocessor = create_preprocessor(numeric_features, CATEGORICAL_FEATURES)
+
+    pipeline = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor),
+            ("classifier", classifier),
+        ]
+    )
+
+    return train_and_tune_model(
+        model_name=model_name,
+        pipeline=pipeline,
+        param_dist=param_dist,
+        train_X=train_X,
+        train_y=train_y,
+        test_X=test_X,
+        test_y=test_y,
+        n_iter=n_iter,
+    )
+
+
+def run_training() -> None:
+    set_random_seeds(RANDOM_SEED)
+
+    train, test = load_split()
+    train_y = train[TARGET]
+    train_X = train.drop(columns=[TARGET, "unique_id"])
+    test_y = test[TARGET]
+    test_X = test.drop(columns=[TARGET, "unique_id"])
+
+    best_glm_model = execute_model_pipeline(
+        model_name="GLM",
+        classifier=SGDClassifier(
+            loss="log_loss", max_iter=1000, random_state=RANDOM_SEED
+        ),
+        numeric_features=NUMERIC_FEATURES_GLM,
+        param_dist={
+            "classifier__l1_ratio": uniform(0, 1),
+            "classifier__alpha": loguniform(1e-4, 1e-1),
+        },
+        train_X=train_X,
+        train_y=train_y,
+        test_X=test_X,
+        test_y=test_y,
+        n_iter=20,
+    )
+
+    best_lgbm_model = execute_model_pipeline(
+        model_name="LGBM",
+        classifier=LGBMClassifier(
+            objective="binary", random_state=RANDOM_SEED, verbose=-1
+        ),
+        numeric_features=NUMERIC_FEATURES,
+        param_dist={
+            "classifier__learning_rate": loguniform(0.01, 0.2),
+            "classifier__n_estimators": randint(50, 200),
+            "classifier__num_leaves": randint(10, 60),
+            "classifier__min_child_weight": loguniform(0.0001, 0.002),
+        },
+        train_X=train_X,
+        train_y=train_y,
+        test_X=test_X,
+        test_y=test_y,
+        n_iter=5,
+    )
+
+    joblib.dump(best_glm_model, DATA_DIR / "glm_model.joblib")
+    joblib.dump(best_lgbm_model, DATA_DIR / "lgbm_model.joblib")
     train_X.to_parquet(DATA_DIR / "train_features.parquet", index=False)
 
 
-def load_training_outputs():
+def load_training_outputs() -> Dict[str, Union[BaseEstimator, pd.DataFrame]]:
     """Load trained models and data for evaluation."""
     return {
         "glm_model": joblib.load(DATA_DIR / "glm_model.joblib"),
