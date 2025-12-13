@@ -1,6 +1,4 @@
-import sys
 import warnings
-from pathlib import Path
 
 warnings.filterwarnings(
     "ignore",
@@ -8,10 +6,6 @@ warnings.filterwarnings(
 )
 
 import pandas as pd
-
-current_file = Path(__file__).resolve()
-src_directory = current_file.parent.parent
-sys.path.append(str(src_directory))
 
 from income_predict_d100_d400.cleaning import run_cleaning_pipeline
 from income_predict_d100_d400.data import run_data_fetch_pipeline

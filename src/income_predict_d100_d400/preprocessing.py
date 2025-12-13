@@ -1,13 +1,6 @@
-import sys
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from scipy.stats import chi2_contingency
-
-current_file = Path(__file__).resolve()
-src_directory = current_file.parent.parent
-sys.path.append(str(src_directory))
 
 from notebooks.visualisations import eda_plots as plotting
 

@@ -1,14 +1,8 @@
-import sys
-from pathlib import Path
 from typing import Any, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import auc, log_loss
-
-current_file = Path(__file__).resolve()
-src_directory = current_file.parent.parent
-sys.path.append(str(src_directory))
 
 from income_predict_d100_d400.plotting import (
     plot_confusion_matrices,
@@ -94,7 +88,6 @@ def lorenz_curve(
     y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
     exposure = np.asarray(exposure)
 
-    # order samples by increasing predicted risk:
     ranking = np.argsort(y_pred)
     ranked_exposure = exposure[ranking]
     ranked_pure_premium = y_true[ranking]
@@ -184,7 +177,6 @@ def run_evaluation(
     print("\nTuned LGBM Feature Importance (Top 15):")
     print(lgbm_importance.head(15))
 
-    # Partial dependence - use top 5 features from LGBM importance
     top_features = lgbm_importance.head(5)["feature"].tolist()
 
     original_features = []

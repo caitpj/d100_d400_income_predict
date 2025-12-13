@@ -9,7 +9,7 @@ ENV PATH="/opt/conda/envs/d100_d300_env/bin:$PATH"
 
 COPY pyproject.toml .
 COPY src/ src/
-RUN pip install . --no-deps
+RUN pip install -e . --no-deps
 
 COPY . .
 

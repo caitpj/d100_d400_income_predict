@@ -1,7 +1,5 @@
 import random
-import sys
 import zlib
-from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
 import joblib
@@ -18,14 +16,9 @@ from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from income_predict_d100_d400.robust_paths import DATA_DIR
+
 RANDOM_SEED = 42
-
-if (Path.cwd() / "src").exists():
-    DATA_DIR = Path.cwd() / "src" / "data"
-else:
-    DATA_DIR = Path.cwd() / "data"
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 TARGET = "high_income"
 

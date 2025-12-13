@@ -74,7 +74,7 @@ or create a your own file and import income_predict_d100_d400:
 
 ### 2. Build the Docker Image
 
-    `docker build -t conda-uciml .`
+    `docker build -t conda-uciml .` (from root of d100_d400_income_predict)
 
 ### 3. Run the Model Pipeline
 This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key visualisations. It should take a minuite or so to run.
@@ -87,7 +87,7 @@ This runs the model in the Docker container, including downloading the data, cle
     conda-uciml python src/income_predict_d100_d400/training_pipeline.py
     ```
 
-### 4. Run the `final_report.ipynb` Notebook
+### 4. Run Notebooks
 
     ```
     docker run --rm -it \

@@ -1,13 +1,7 @@
 from pathlib import Path
 from typing import Dict, Tuple
 
-if (Path.cwd() / "src").exists():
-    BASE_DIR = Path.cwd() / "src"
-else:
-    BASE_DIR = Path.cwd()
-
-DATA_DIR = BASE_DIR / "data"
-PLOTS_DIR = DATA_DIR / "plots"
+from income_predict_d100_d400.robust_paths import DATA_DIR, PLOTS_DIR
 
 EXPECTED_ARTIFACTS: Dict[str, Path] = {
     "Raw Data": DATA_DIR / "census_income.parquet",
