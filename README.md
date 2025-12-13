@@ -19,45 +19,43 @@ There are two ways to install and run:
 ### Install and Run - Method 1, PyPI
 
 #### 1. Install the package
-
-    `pip install income_predict_d100_d400`
+`pip install income_predict_d100_d400`
 
 #### 2. Run the Pipeline
-
-    `python -m income_predict_d100_d400.training_pipeline`
+`python -m income_predict_d100_d400.training_pipeline`
 
 or create a your own file and import income_predict_d100_d400:
-    ```
-    from income_predict_d100_d400.data import run_data_fetch_pipeline
-    from income_predict_d100_d400.cleaning import run_cleaning_pipeline
-    from income_predict_d100_d400.evaluation import run_evaluation
-    from income_predict_d100_d400.model_training import (
-        TARGET,
-        load_training_outputs,
-        run_split,
-        run_training,
-    )
+```python
+from income_predict_d100_d400.data import run_data_fetch_pipeline
+from income_predict_d100_d400.cleaning import run_cleaning_pipeline
+from income_predict_d100_d400.evaluation import run_evaluation
+from income_predict_d100_d400.model_training import (
+    TARGET,
+    load_training_outputs,
+    run_split,
+    run_training,
+)
 
-    print("Starting Pipeline...")
+print("Starting Pipeline...")
 
-    file_path = run_data_fetch_pipeline()
-    df_raw = pd.read_parquet(file_path)
-    run_cleaning_pipeline(df_raw)
-    run_split()
-    run_training()
+file_path = run_data_fetch_pipeline()
+df_raw = pd.read_parquet(file_path)
+run_cleaning_pipeline(df_raw)
+run_split()
+run_training()
 
-    results = load_training_outputs()
+results = load_training_outputs()
 
-    run_evaluation(
-        results["test"],
-        TARGET,
-        results["glm_model"],
-        results["lgbm_model"],
-        results["train_features"],
-    )
+run_evaluation(
+    results["test"],
+    TARGET,
+    results["glm_model"],
+    results["lgbm_model"],
+    results["train_features"],
+)
 
-    print("Pipeline finished.")
-    ```
+print("Pipeline finished.")
+```
 
 ### Install and Run - Method 2, Docker
 
@@ -66,36 +64,33 @@ or create a your own file and import income_predict_d100_d400:
 - link: [Docker Desktop](https://www.docker.com/products/docker-desktop)
 
 ### 2. Clone the Repository
-
-    ```
-    git clone https://github.com/caitpj/d100_d400_income_predict.git
-    cd d100_d400_income_predict
-    ```
+```bash
+git clone https://github.com/caitpj/d100_d400_income_predict.git
+cd d100_d400_income_predict
+```
 
 ### 2. Build the Docker Image
 
-    `docker build -t conda-uciml .` (from root of d100_d400_income_predict)
+`docker build -t conda-uciml .` (from root of d100_d400_income_predict)
 
 ### 3. Run the Model Pipeline
 This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key visualisations. It should take a minuite or so to run.
-
-    ```
-    docker run --rm --shm-size=2g \
-    -e PYTHONWARNINGS=ignore \
-    -e PYTHONUNBUFFERED=1 \
-    -e OMP_NUM_THREADS=1 \
-    conda-uciml python src/income_predict_d100_d400/training_pipeline.py
-    ```
+```bash
+docker run --rm --shm-size=2g \
+-e PYTHONWARNINGS=ignore \
+-e PYTHONUNBUFFERED=1 \
+-e OMP_NUM_THREADS=1 \
+conda-uciml python src/income_predict_d100_d400/training_pipeline.py
+```
 
 ### 4. Run Notebooks
-
-    ```
-    docker run --rm -it \
-    -p 8888:8888 \
-    -v "$(pwd):/app" \
-    conda-uciml \
-    jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
-    ```
+```bash
+docker run --rm -it \
+-p 8888:8888 \
+-v "$(pwd):/app" \
+conda-uciml \
+jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+```
 From the output of the above code, find and paste the URL into a browser. It should start with: `http://127.0.0.1:8888/?token=...`
 
 
@@ -110,16 +105,16 @@ To ensure code quality, I use `pre-commit` hooks that run locally on your machin
 - link: [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed on your machine (for local development and git hooks).
 
 ### 2. Install required packages based on environment.yml
-    `conda env update --file environment.yml --prune`
+`conda env update --file environment.yml --prune`
 
 ### 3. initialize conda (will need to reset terminal)
-    `conda init zsh`
+`conda init zsh`
 
 ### 4. Activate the environment
-    `conda activate d100_d300_env`
+`conda activate d100_d300_env`
 
 ### 5. Install the git hooks
-    `pre-commit install`
+`pre-commit install`
 
 Now, every time you run `git commit`, your local machine will fist check it meets the rules stated in .`pre-commit-config.yaml` automatically. You can also run `pytests` in the src/tests directory.
 
