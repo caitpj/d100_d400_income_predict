@@ -193,6 +193,3 @@ def run_cleaning_pipeline(df: pd.DataFrame) -> pd.DataFrame:
     output_path = data_dir / "cleaned_census_income.parquet"
 
     df.to_parquet(output_path)
-    print(
-        f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {data_dir.name}/{output_path.name}"
-    )

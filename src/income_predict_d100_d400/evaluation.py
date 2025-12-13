@@ -104,7 +104,7 @@ def get_feature_importance(importances, feature_names):
     )
 
 
-def run_evaluation(test_df, target, glm_model, lgbm_model, train_X):
+def run_evaluation(test_df, target, glm_model, lgbm_model, train_features):
     """Run full evaluation pipeline for GLM and LGBM models."""
 
     test_X = test_df.drop(columns=[target, "unique_id"])
@@ -160,7 +160,9 @@ def run_evaluation(test_df, target, glm_model, lgbm_model, train_X):
             original = feat.replace("num__", "")
         else:
             original = feat
-        if original not in original_features and original in train_X.columns:
+        if original not in original_features and original in train_features.columns:
             original_features.append(original)
 
-    plot_partial_dependence(glm_model, lgbm_model, train_X, original_features[:5])
+    plot_partial_dependence(
+        glm_model, lgbm_model, train_features, original_features[:5]
+    )

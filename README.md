@@ -53,7 +53,7 @@ or create a your own file and import income_predict_d100_d400:
         TARGET,
         results["glm_model"],
         results["lgbm_model"],
-        results["train_X"],
+        results["train_features"],
     )
 
     print("Pipeline finished.")
@@ -84,7 +84,7 @@ This runs the model in the Docker container, including downloading the data, cle
     -e PYTHONWARNINGS=ignore \
     -e PYTHONUNBUFFERED=1 \
     -e OMP_NUM_THREADS=1 \
-    conda-uciml python src/income_predict/training_pipeline.py
+    conda-uciml python src/income_predict_d100_d400/training_pipeline.py
     ```
 
 ### 4. Run the `final_report.ipynb` Notebook
@@ -128,7 +128,8 @@ Now, every time you run `git commit`, your local machine will fist check it meet
 Some code was AI generated, notably:
 - Visualisations
 - Pandas vs Polars benchmark test
+- Pretty terminal outputs (e.g. download animation, output table)
 
 In other areas, AI was used to help with debugging, notably:
 - Docker related issues
-- Performence issues for hypertunning
+- Performence issues with hypertunning

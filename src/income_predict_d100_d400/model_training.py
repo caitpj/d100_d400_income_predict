@@ -78,9 +78,6 @@ def run_split():
     train.to_parquet(DATA_DIR / "train_split.parquet", index=False)
     test.to_parquet(DATA_DIR / "test_split.parquet", index=False)
 
-    print(f"✅ Saved train split: {train.shape[0]} rows")
-    print(f"✅ Saved test split: {test.shape[0]} rows")
-
 
 def load_split():
     """Load train/test split from parquet."""
@@ -230,11 +227,7 @@ def run_training():
 
     joblib.dump(glm_model, DATA_DIR / "glm_model.joblib")
     joblib.dump(lgbm_model, DATA_DIR / "lgbm_model.joblib")
-    train_X.to_parquet(DATA_DIR / "train_X.parquet", index=False)
-
-    print("✅ Saved GLM model")
-    print("✅ Saved LGBM model")
-    print("✅ Saved train_X")
+    train_X.to_parquet(DATA_DIR / "train_features.parquet", index=False)
 
 
 def load_training_outputs():
@@ -242,6 +235,6 @@ def load_training_outputs():
     return {
         "glm_model": joblib.load(DATA_DIR / "glm_model.joblib"),
         "lgbm_model": joblib.load(DATA_DIR / "lgbm_model.joblib"),
-        "train_X": pd.read_parquet(DATA_DIR / "train_X.parquet"),
+        "train_features": pd.read_parquet(DATA_DIR / "train_features.parquet"),
         "test": pd.read_parquet(DATA_DIR / "test_split.parquet"),
     }

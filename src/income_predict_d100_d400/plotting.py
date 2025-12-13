@@ -112,7 +112,7 @@ def plot_partial_dependence(glm_model, lgbm_model, X, top_features):
 
     plt.suptitle("Partial Dependence Plots - Top Features (GLM vs LGBM)", y=1.02)
     plt.tight_layout()
-    _save_plot()
+    _save_plot(name="feature_dependence_plot")
 
 
 def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
@@ -151,7 +151,7 @@ def plot_confusion_matrices(y_true, glm_preds, lgbm_preds):
 
     plt.suptitle("Confusion Matrices: Predicted vs Actual", y=1.02)
     plt.tight_layout()
-    _save_plot()
+    _save_plot(name="classification_plot")
 
 
 def plot_distributions(df: pd.DataFrame):

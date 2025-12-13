@@ -22,6 +22,7 @@ from income_predict_d100_d400.model_training import (
     run_split,
     run_training,
 )
+from income_predict_d100_d400.pipeline_summary import print_pipeline_summary
 
 print("Starting Pipeline...")
 
@@ -39,7 +40,9 @@ run_evaluation(
     TARGET,
     results["glm_model"],
     results["lgbm_model"],
-    results["train_X"],
+    results["train_features"],
 )
+
+print_pipeline_summary()
 
 print("Pipeline finished.")
