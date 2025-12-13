@@ -99,17 +99,17 @@ This runs the model in the Docker container, including downloading the data, cle
 From the output of the above code, find and paste the URL into a browser. It should start with: `http://127.0.0.1:8888/?token=...`
 
 
-## Development
+#### Extra Steps for Development
 
 There are a few more steps needed if you want to develop this repo on your local machine.
 
-To ensure code quality, I use `pre-commit` hooks that run locally on your machine before every commit. This requires a local Conda environment on your host machine (not in Docker).
+To ensure code quality, I use `pre-commit` hooks that run locally on your machine before every commit. As well as `pytest` for unit tests. These require a local Conda environment on your host machine (not in Docker).
 
 ### 1. Download and install Miniconda (if you don't have it already)
 
 - link: [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed on your machine (for local development and git hooks).
 
-### 2. This installs pre-commit, black, mypy, etc. based on environment.yml
+### 2. Install required packages based on environment.yml
     `conda env update --file environment.yml --prune`
 
 ### 3. initialize conda (will need to reset terminal)
@@ -121,7 +121,7 @@ To ensure code quality, I use `pre-commit` hooks that run locally on your machin
 ### 5. Install the git hooks
     `pre-commit install`
 
-Now, every time you run `git commit`, your local machine will fist check it meets the rules stated in .`pre-commit-config.yaml` automatically.
+Now, every time you run `git commit`, your local machine will fist check it meets the rules stated in .`pre-commit-config.yaml` automatically. You can also run `pytests` in the src/tests directory.
 
 
 ## AI Use
@@ -129,7 +129,10 @@ Some code was AI generated, notably:
 - Visualisations
 - Pandas vs Polars benchmark test
 - Pretty terminal outputs (e.g. download animation, output table)
+- Fully descriptive doc strings
 
 In other areas, AI was used to help with debugging, notably:
 - Docker related issues
 - Performence issues with hypertunning
+
+All code generated from AI is understood and reviewed by the author.
