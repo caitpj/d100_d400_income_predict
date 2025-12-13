@@ -60,14 +60,9 @@ def run_data_fetch_pipeline(
     output_format: Literal["csv", "parquet"] = "parquet"
 ) -> Path:
     """
-    Downloads Census Income dataset and saves it to the data directory
-    relative to the project root.
+    Checks if data exists locally. If not, downloads Census Income dataset
+    and saves it to the data directory relative to the project root.
     """
-    try:
-        df = fetch_census_data()
-    except Exception as e:
-        raise RuntimeError(f"Error downloading data: {e}") from e
-
     if (Path.cwd() / "src").exists():
         data_dir = Path.cwd() / "src" / "data"
     else:
@@ -77,13 +72,24 @@ def run_data_fetch_pipeline(
     file_name = "census_income"
     output_path = data_dir / f"{file_name}.{output_format}"
 
+    if output_path.exists():
+        print(
+            f"""
+            No need to download since data already exists at:
+            {data_dir.name}/{output_path.name} (good, because it means
+            we're less likley to get blocked by UCI for spamming downloads)
+            """
+        )
+        return output_path
+
+    try:
+        df = fetch_census_data()
+    except Exception as e:
+        raise RuntimeError(f"Error downloading data: {e}") from e
+
     if output_format == "csv":
         df.to_csv(output_path, index=False)
     else:
         df.to_parquet(output_path, index=False)
-
-    print(
-        f"✅ Saved {df.shape[0]} rows, {df.shape[1]} columns to: {data_dir.name}/{output_path.name}"
-    )
 
     return output_path
