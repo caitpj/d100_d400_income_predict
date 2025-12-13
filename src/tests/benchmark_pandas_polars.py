@@ -7,8 +7,6 @@ the absolute time difference is small (fractions of a second) for this dataset s
 Given the length of time Pandas has been around and its ecosystem, it is likely the better
 in terms of community support and library compatibility. However, for larger datasets or
 performance-critical applications, Polars is worth considering.
-
-NOTE: Due to time constraints, the majority of the code was AI generated.
 """
 
 import time

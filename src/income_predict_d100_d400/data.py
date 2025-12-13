@@ -61,9 +61,7 @@ def fetch_census_data() -> pd.DataFrame:
     return pd.concat([data.data.features, data.data.targets], axis=1)
 
 
-def run_data_fetch_pipeline(
-    output_format: Literal["csv", "parquet"] = "parquet"
-) -> Path:
+def load_data(output_format: Literal["csv", "parquet"] = "parquet") -> Path:
     """
     Checks if data exists locally. If not, downloads Census Income dataset.
 

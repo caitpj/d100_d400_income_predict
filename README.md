@@ -26,7 +26,7 @@ There are two ways to install and run:
 
 or create a your own file and import income_predict_d100_d400:
 ```python
-from income_predict_d100_d400.data import run_data_fetch_pipeline
+from income_predict_d100_d400.data import load_data
 from income_predict_d100_d400.cleaning import run_cleaning_pipeline
 from income_predict_d100_d400.evaluation import run_evaluation
 from income_predict_d100_d400.model_training import (
@@ -38,7 +38,7 @@ from income_predict_d100_d400.model_training import (
 
 print("Starting Pipeline...")
 
-file_path = run_data_fetch_pipeline()
+file_path = load_data()
 df_raw = pd.read_parquet(file_path)
 run_cleaning_pipeline(df_raw)
 run_split()

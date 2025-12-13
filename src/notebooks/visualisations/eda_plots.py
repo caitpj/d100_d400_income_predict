@@ -127,7 +127,7 @@ def plot_numeric_strip(df: pd.DataFrame, target: str) -> None:
             sns.stripplot(
                 data=df, x=target, y=feature, jitter=0.45, alpha=0.05, legend=False
             )
-            plt.title(f"{feature} vs {target}")
+            plt.title(f"{feature} Distribution by {target} Class")
             plt.grid(True, linestyle="--", alpha=0.3)
 
         plt.tight_layout()
@@ -151,6 +151,7 @@ def plot_categorical_stack(df: pd.DataFrame, target: str) -> None:
             plt.subplot(rows, cols, i + 1)
 
             crosstab = pd.crosstab(df[feature], df[target], normalize="index")
+            crosstab = crosstab.sort_values(by=crosstab.columns[-1], ascending=False)
             crosstab.plot(kind="bar", stacked=True, ax=plt.gca())
 
             plt.title(f"{feature} Distribution by {target}", fontsize=12)
