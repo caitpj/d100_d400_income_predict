@@ -9,7 +9,10 @@ current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
 sys.path.append(str(src_directory))
 
-from income_predict.plotting import plot_confusion_matrices, plot_partial_dependence
+from income_predict_d100_d400.plotting import (
+    plot_confusion_matrices,
+    plot_partial_dependence,
+)
 
 
 def evaluate_predictions(

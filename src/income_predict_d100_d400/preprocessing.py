@@ -9,7 +9,7 @@ current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
 sys.path.append(str(src_directory))
 
-import income_predict.plotting as plotting
+import income_predict_d100_d400.plotting as plotting
 
 
 def get_data_description(df: pd.DataFrame) -> dict:

@@ -1,5 +1,11 @@
 import sys
+import warnings
 from pathlib import Path
+
+warnings.filterwarnings(
+    "ignore",
+    message=".*X does not have valid feature names, but LGBMClassifier was fitted with feature names.*",  # noqa: E501
+)
 
 import pandas as pd
 
@@ -7,9 +13,10 @@ current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
 sys.path.append(str(src_directory))
 
-from income_predict.cleaning import run_cleaning_pipeline
-from income_predict.evaluation import run_evaluation
-from income_predict.model_training import (
+from income_predict_d100_d400.cleaning import run_cleaning_pipeline
+from income_predict_d100_d400.data import run_data_fetch_pipeline
+from income_predict_d100_d400.evaluation import run_evaluation
+from income_predict_d100_d400.model_training import (
     TARGET,
     load_training_outputs,
     run_split,
@@ -18,16 +25,15 @@ from income_predict.model_training import (
 
 print("Starting Pipeline...")
 
-# file_path = run_data_fetch_pipeline()
-# Seem to have been blocked from downloading from UCI repo, so using local file for now
-file_path = src_directory / "data" / "census_income.parquet"
+file_path = run_data_fetch_pipeline()
 df_raw = pd.read_parquet(file_path)
-run_cleaning_pipeline(df_raw)
 
+run_cleaning_pipeline(df_raw)
 run_split()
 run_training()
 
 results = load_training_outputs()
+
 run_evaluation(
     results["test"],
     TARGET,

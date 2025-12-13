@@ -10,9 +10,58 @@ There is are other sub-analysis files, they are:
 - `src/tests/benchmark_pandas_polars.py` script that highlights the performance differences between Polars and Pandas on loading and cleaning the dataset.
 - `src/notebooks/eda_cleaning.ipynb` exploratory data analysis. Lots more charts and info on how and why certain decisions were made in building the models.
 
-## Running the model
+## Installation
 
-### 1. Download and install Docker Desktop (if you don't have it already)
+There are two ways to install and run:
+- Directly from PyPI as a package (easiest)
+- Docker container (most robust, recommended for development)
+
+### Install and Run - Method 1, PyPI
+
+#### 1. Install the package
+
+    `pip install income_predict_d100_d400`
+
+#### 2. Run the Pipeline
+
+    `python -m income_predict_d100_d400.training_pipeline`
+
+or create a your own file and import income_predict_d100_d400:
+    ```
+    from income_predict_d100_d400.data import run_data_fetch_pipeline
+    from income_predict_d100_d400.cleaning import run_cleaning_pipeline
+    from income_predict_d100_d400.evaluation import run_evaluation
+    from income_predict_d100_d400.model_training import (
+        TARGET,
+        load_training_outputs,
+        run_split,
+        run_training,
+    )
+
+    print("Starting Pipeline...")
+
+    file_path = run_data_fetch_pipeline()
+    df_raw = pd.read_parquet(file_path)
+    run_cleaning_pipeline(df_raw)
+    run_split()
+    run_training()
+
+    results = load_training_outputs()
+
+    run_evaluation(
+        results["test"],
+        TARGET,
+        results["glm_model"],
+        results["lgbm_model"],
+        results["train_X"],
+    )
+
+    print("Pipeline finished.")
+    ```
+
+### Install and Run - Method 2, Docker
+
+#### 1. Download and install Docker Desktop (if you don't have it already)
 
 - link: [Docker Desktop](https://www.docker.com/products/docker-desktop)
 
@@ -82,3 +131,4 @@ Some code was AI generated, notably:
 
 In other areas, AI was used to help with debugging, notably:
 - Docker related issues
+- Performence issues for hypertunning

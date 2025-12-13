@@ -8,12 +8,11 @@ from sklearn.inspection import partial_dependence
 from sklearn.metrics import confusion_matrix
 
 _plot_counter = 0
-import os
 
-if os.path.exists("/app/src/data"):
-    PLOTS_DIR = Path("/app/src/data/plots")
+if (Path.cwd() / "src").exists():
+    PLOTS_DIR = Path.cwd() / "src" / "data" / "plots"
 else:
-    PLOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "plots"
+    PLOTS_DIR = Path.cwd() / "data" / "plots"
 
 
 def _save_plot(name=None):

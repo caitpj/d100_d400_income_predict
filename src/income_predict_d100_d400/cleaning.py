@@ -184,10 +184,11 @@ def run_cleaning_pipeline(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = full_clean(df)
 
-    current_file = Path(__file__).resolve()
-    src_directory = current_file.parent.parent
+    if (Path.cwd() / "src").exists():
+        data_dir = Path.cwd() / "src" / "data"
+    else:
+        data_dir = Path.cwd() / "data"
 
-    data_dir = src_directory / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     output_path = data_dir / "cleaned_census_income.parquet"
 

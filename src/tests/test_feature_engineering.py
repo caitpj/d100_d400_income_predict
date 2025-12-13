@@ -8,7 +8,7 @@ current_file = Path(__file__).resolve()
 src_directory = current_file.parent.parent
 sys.path.append(str(src_directory))
 
-from income_predict.feature_engineering import SimpleStandardScaler
+from income_predict_d100_d400.feature_engineering import SimpleStandardScaler
 
 
 def test_simple_standard_scaler_integration():

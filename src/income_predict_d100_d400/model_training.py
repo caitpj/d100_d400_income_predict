@@ -1,4 +1,3 @@
-import os
 import random
 import sys
 import zlib
@@ -19,11 +18,10 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 RANDOM_SEED = 42
 
-# Docker-compatible path resolution
-if os.path.exists("/app/src/data"):
-    DATA_DIR = Path("/app/src/data")
+if (Path.cwd() / "src").exists():
+    DATA_DIR = Path.cwd() / "src" / "data"
 else:
-    DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+    DATA_DIR = Path.cwd() / "data"
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 

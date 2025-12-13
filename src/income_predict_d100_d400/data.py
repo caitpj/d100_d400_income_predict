@@ -68,10 +68,11 @@ def run_data_fetch_pipeline(
     except Exception as e:
         raise RuntimeError(f"Error downloading data: {e}") from e
 
-    current_file = Path(__file__).resolve()
-    src_directory = current_file.parent.parent
+    if (Path.cwd() / "src").exists():
+        data_dir = Path.cwd() / "src" / "data"
+    else:
+        data_dir = Path.cwd() / "data"
 
-    data_dir = src_directory / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     file_name = "census_income"
     output_path = data_dir / f"{file_name}.{output_format}"
