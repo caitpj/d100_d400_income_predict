@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "income_predict_d100_d400"
-version = "0.1.1"
+version = "0.1.3"
 description = "My installable package for income prediction"
 requires-python = ">=3.9"
 dependencies = [
@@ -21,13 +21,6 @@ dependencies = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
-
-[project.optional-dependencies]
-dev = [
-    "jupyter>=1.0", # Only needed for running notebooks
-    "polars>=1.30",  # Only needed for the benchmark script - src/tests/benchmark_pandas_polars.py
-    "pre-commit>=3.4", # Only needed development
-]
 
 [tool.setuptools.packages.find]
 where = ["src"]
