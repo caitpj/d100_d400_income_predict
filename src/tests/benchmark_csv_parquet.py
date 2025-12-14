@@ -13,6 +13,7 @@ import statistics
 import sys
 import time
 from pathlib import Path
+from typing import Tuple
 
 import pandas as pd
 
@@ -24,19 +25,20 @@ from income_predict_d100_d400.cleaning import full_clean
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
 # Configuration
-NUM_ITERATIONS = 10
-DATA_FILE_PATH = DATA_DIR / "census_income.parquet"
+NUM_ITERATIONS: int = 10
+DATA_FILE_PATH: Path = DATA_DIR / "census_income.parquet"
 
 
-def convert_bytes(num):
+def convert_bytes(num: float) -> str:
     """Convert bytes to a human-readable format (KB, MB, GB, etc.)."""
     for unit in ["bytes", "KB", "MB", "GB", "TB", "PB"]:
         if num < 1024.0:
             return f"{num:.2f} {unit}"
         num /= 1024.0
+    return f"{num:.2f} PB"
 
 
-def setup_files():
+def setup_files() -> Tuple[Path, Path, int, int]:
     """Checks for source data and creates temporary test files."""
     print("--- Setup: Generating Temporary Files ---")
 
@@ -70,7 +72,9 @@ def setup_files():
     return source_csv, source_parquet, csv_size, parquet_size
 
 
-def run_benchmark_cycle(source_file, output_file, format_type):
+def run_benchmark_cycle(
+    source_file: Path, output_file: Path, format_type: str
+) -> float:
     """Runs a single load-clean-save cycle and returns the time taken."""
     start_time = time.perf_counter()
 
@@ -95,13 +99,13 @@ def run_benchmark_cycle(source_file, output_file, format_type):
     return time.perf_counter() - start_time
 
 
-def main():
+def main() -> None:
     source_csv, source_parquet, csv_size, parquet_size = setup_files()
     output_csv = Path("temp_result.csv")
     output_parquet = Path("temp_result.parquet")
 
-    csv_times = []
-    parquet_times = []
+    csv_times: list[float] = []
+    parquet_times: list[float] = []
 
     print(f"--- Starting Benchmark ({NUM_ITERATIONS} iterations) ---")
 

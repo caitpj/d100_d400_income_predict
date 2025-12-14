@@ -26,7 +26,7 @@ def check_files(artifacts: Dict[str, Path]) -> Dict[str, Tuple[bool, str]]:
     Returns:
         A dictionary mapping description to (exists_bool, display_path_string).
     """
-    results = {}
+    results: Dict[str, Tuple[bool, str]] = {}
 
     for desc, path in artifacts.items():
         exists = path.exists()

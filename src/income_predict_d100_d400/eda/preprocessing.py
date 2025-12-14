@@ -1,3 +1,5 @@
+from typing import Dict
+
 import numpy as np
 import pandas as pd
 from scipy.stats import chi2_contingency
@@ -5,7 +7,7 @@ from scipy.stats import chi2_contingency
 from income_predict_d100_d400.eda import plots as plotting
 
 
-def get_data_description(df: pd.DataFrame) -> dict:
+def get_data_description(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     """
     Generates a description of the data and plots distributions.
 
@@ -154,7 +156,9 @@ def calculate_categorical_correlations(
     return pd.Series(cramers_v_values).sort_values(ascending=False)
 
 
-def get_feature_correlations(df: pd.DataFrame, target="income") -> pd.Series:
+def get_feature_correlations(
+    df: pd.DataFrame, target: str = "income"
+) -> Dict[str, pd.Series]:
     """
     Calculates Pearson correlation for numeric features and Cramér's V for categorical features.
 
@@ -165,7 +169,7 @@ def get_feature_correlations(df: pd.DataFrame, target="income") -> pd.Series:
     Returns:
         A dictionary containing two Series: 'numeric' correlations and 'categorical' correlations.
     """
-    results = {}
+    results: Dict[str, pd.Series] = {}
 
     # Numeric correlations (Pearson)
     df_temp = df.copy()
@@ -190,7 +194,7 @@ def get_feature_correlations(df: pd.DataFrame, target="income") -> pd.Series:
     return results
 
 
-def identify_features_by_type(df: pd.DataFrame) -> dict:
+def identify_features_by_type(df: pd.DataFrame) -> Dict[str, list]:
     """
     Separates available columns into 'numeric' and 'categorical' lists.
 

@@ -10,6 +10,7 @@ in terms of community support and library compatibility. However, for larger dat
 """
 
 import time
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,7 @@ from income_predict_d100_d400.robust_paths import DATA_DIR
 
 PARQUET_PATH = DATA_DIR / "census_income.parquet"
 
-COLUMN_RENAMING = {
+COLUMN_RENAMING: Dict[str, str] = {
     "age": "age",
     "workclass": "work_class",
     "education": "education",
@@ -35,9 +36,9 @@ COLUMN_RENAMING = {
     "income": "income",
 }
 
-COLUMNS_TO_DROP = ["fnlwgt", "education-num", "income", "marital_status"]
+COLUMNS_TO_DROP: list[str] = ["fnlwgt", "education-num", "income", "marital_status"]
 
-EDUCATION_ORDER = {
+EDUCATION_ORDER: Dict[str, int] = {
     "Preschool": 1,
     "1st-4th": 2,
     "5th-6th": 3,
@@ -57,7 +58,7 @@ EDUCATION_ORDER = {
 }
 
 
-def pandas_load_and_clean():
+def pandas_load_and_clean() -> pd.DataFrame:
     """Load and clean data using pandas."""
     df = pd.read_parquet(PARQUET_PATH)
     df.insert(0, "unique_id", range(len(df)))
@@ -79,7 +80,7 @@ def pandas_load_and_clean():
     return df
 
 
-def polars_load_and_clean():
+def polars_load_and_clean() -> pl.DataFrame:
     """Load and clean data using polars."""
     df = pl.read_parquet(PARQUET_PATH)
     df = df.with_row_index("unique_id")
@@ -117,7 +118,8 @@ def polars_load_and_clean():
     return df
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Run the benchmark comparison."""
     print(f"Data file: {PARQUET_PATH}")
     print("-" * 50)
 
@@ -138,3 +140,7 @@ if __name__ == "__main__":
     speedup = pandas_time / polars_time
     winner = "Polars" if speedup > 1 else "Pandas"
     print(f"Speedup: {speedup:.2f}x ({winner} is faster)")
+
+
+if __name__ == "__main__":
+    main()

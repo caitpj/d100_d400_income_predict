@@ -1,11 +1,11 @@
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
 
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
-COLUMN_RENAMING = {
+COLUMN_RENAMING: Dict[str, str] = {
     "age": "age",
     "workclass": "work_class",
     "education": "education",
@@ -21,9 +21,9 @@ COLUMN_RENAMING = {
     "income": "income",
 }
 
-COLUMNS_TO_DROP = ["fnlwgt", "education-num", "income", "marital_status"]
+COLUMNS_TO_DROP: List[str] = ["fnlwgt", "education-num", "income", "marital_status"]
 
-EDUCATION_ORDER = {
+EDUCATION_ORDER: Dict[str, int] = {
     "Preschool": 1,
     "1st-4th": 2,
     "5th-6th": 3,
@@ -149,8 +149,8 @@ def add_unique_id(df: pd.DataFrame) -> pd.DataFrame:
 
 def clean_columns(
     df: pd.DataFrame,
-    renaming_map: dict = COLUMN_RENAMING,
-    columns_to_drop: list = COLUMNS_TO_DROP,
+    renaming_map: Dict[str, str] = COLUMN_RENAMING,
+    columns_to_drop: List[str] = COLUMNS_TO_DROP,
 ) -> pd.DataFrame:
     """
     Renames a standard set of columns to use snake_case and drops predefined columns.

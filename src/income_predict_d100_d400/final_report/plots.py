@@ -1,14 +1,22 @@
 """Visualisations for the final project report."""
 
+from typing import Dict, List, Optional, Tuple
+
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 
 
-def binary_column_issue(df, column_name, expected_values=["<=50K", ">50K"]):
+def binary_column_issue(
+    df: pd.DataFrame,
+    column_name: str,
+    expected_values: Optional[List[str]] = None,
+) -> Optional[Tuple[Figure, Axes]]:
     """
     Visualizes data quality issues in a binary column by showing counts of each unique value.
     Values that don't match the expected binary values are highlighted in red.
@@ -26,6 +34,9 @@ def binary_column_issue(df, column_name, expected_values=["<=50K", ">50K"]):
     --------
     fig, ax : matplotlib figure and axes objects
     """
+    if expected_values is None:
+        expected_values = ["<=50K", ">50K"]
+
     # Get value counts for the column
     value_counts = df[column_name].value_counts().sort_values(ascending=False)
 
@@ -72,8 +83,6 @@ def binary_column_issue(df, column_name, expected_values=["<=50K", ">50K"]):
         )
 
     # Create custom legend
-    from matplotlib.patches import Patch
-
     legend_elements = [
         Patch(facecolor="#2ecc71", alpha=0.8, label="Correctly labeled"),
         Patch(facecolor="#e74c3c", alpha=0.8, label="Not correctly labeled"),
@@ -83,8 +92,10 @@ def binary_column_issue(df, column_name, expected_values=["<=50K", ">50K"]):
     plt.tight_layout()
     plt.show()
 
+    return None
 
-def confusion_matrix():
+
+def confusion_matrix() -> None:
     """Plot confusion matrices for tuned GLM and tuned LGBM models."""
     # Hardcoded confusion matrix values for tuned models
     glm_tuned_cm = np.array([[7021, 495], [1025, 1269]])
@@ -214,7 +225,7 @@ def correlation_compare(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def display_dataset(df):
+def display_dataset(df: pd.DataFrame) -> None:
     """
     Creates a pretty table displaying dataset information including shape,
     data types, and unique values.
@@ -280,7 +291,9 @@ def display_dataset(df):
     plt.show()
 
 
-def distribution_variety(df):
+def distribution_variety(
+    df: pd.DataFrame,
+) -> Optional[Tuple[Figure, Tuple[Axes, Axes]]]:
     """
     Visualizes the distribution comparison between two columns:
     1. 'age' - showing smooth distribution
@@ -298,7 +311,7 @@ def distribution_variety(df):
     # Check if both columns exist
     if "age" not in df.columns or "hours-per-week" not in df.columns:
         print("Error: Required columns not found in DataFrame!")
-        return None, None
+        return None
 
     # Get the data for both columns, removing NaN values
     age_data = pd.to_numeric(df["age"].dropna(), errors="coerce").dropna()
@@ -306,7 +319,7 @@ def distribution_variety(df):
 
     if len(age_data) == 0 or len(hours_data) == 0:
         print("No valid numeric data found in required columns!")
-        return None, None
+        return None
 
     # Create figure with two subplots side by side
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
@@ -328,7 +341,7 @@ def distribution_variety(df):
 
     # Sort by distance from median and accumulate counts
     cumulative = 0
-    highlighted_ages = set()
+    highlighted_ages: set = set()
 
     # Expand outward from median until we reach target
     ages_sorted = sorted(age_counts.index, key=lambda x: abs(x - age_median))
@@ -404,8 +417,6 @@ def distribution_variety(df):
     ax2.grid(axis="y", alpha=0.3, linestyle="--")
 
     # Add single shared legend for both plots
-    from matplotlib.patches import Patch
-
     legend_elements = [
         Patch(
             facecolor="#e74c3c", alpha=0.8, label="Represents 46.7% around the median"
@@ -434,9 +445,11 @@ def distribution_variety(df):
     plt.tight_layout()
     plt.show()
 
+    return None
+
 
 # GLM feature ranks (1 = most important)
-GLM_RANKS = {
+GLM_RANKS: Dict[str, int] = {
     "cat__relationship_Own-child": 1,
     "num__capital_net": 2,
     "cat__relationship_Unmarried": 3,
@@ -518,7 +531,7 @@ GLM_RANKS = {
 }
 
 # LGBM feature ranks (1 = most important)
-LGBM_RANKS = {
+LGBM_RANKS: Dict[str, int] = {
     "num__capital_net": 1,
     "num__age": 2,
     "num__hours_per_week": 3,
@@ -600,7 +613,7 @@ LGBM_RANKS = {
 }
 
 # Top 5 features for each model
-GLM_TOP5 = [
+GLM_TOP5: List[str] = [
     "cat__relationship_Own-child",
     "num__capital_net",
     "cat__relationship_Unmarried",
@@ -608,7 +621,7 @@ GLM_TOP5 = [
     "cat__relationship_Married",
 ]
 
-LGBM_TOP5 = [
+LGBM_TOP5: List[str] = [
     "num__capital_net",
     "num__age",
     "num__hours_per_week",
@@ -616,7 +629,7 @@ LGBM_TOP5 = [
     "cat__relationship_Married",
 ]
 
-MAX_RANK = 78
+MAX_RANK: int = 78
 
 
 def feature_importance_rank() -> None:
@@ -713,7 +726,7 @@ def feature_importance_rank() -> None:
     plt.show()
 
 
-def model_comparison():
+def model_comparison() -> None:
     """Plot comparison of GLM, GLM_tuned, LGBM, and LGBM_tuned evaluation metrics."""
     metrics = [
         "Mean Prediction",
@@ -769,7 +782,7 @@ def model_comparison():
     ]
     mean_outcome = 0.233843
 
-    metric_direction = {
+    metric_direction: Dict[str, str] = {
         "Mean Prediction": "closer",
         "Bias": "lower",
         "MSE": "lower",
@@ -931,7 +944,7 @@ def occupation_correlation(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def visualize_missing_data(df):
+def visualize_missing_data(df: pd.DataFrame) -> None:
     """
     Visualizes data quality issues in a DataFrame by showing counts of NaN and '?' values
     for each column in a horizontal stacked bar chart.
