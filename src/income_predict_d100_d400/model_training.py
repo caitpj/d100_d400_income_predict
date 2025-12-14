@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Tuple, Union
 import joblib
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMClassifier
 from scipy.stats import loguniform, randint, uniform
 from sklearn.base import BaseEstimator
 from sklearn.compose import ColumnTransformer
@@ -16,7 +15,10 @@ from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-from income_predict_d100_d400.feature_engineering import SimpleStandardScaler
+from income_predict_d100_d400.feature_engineering import (
+    LGBMClassifierWithEarlyStopping,
+    SimpleStandardScaler,
+)
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
 RANDOM_SEED = 42
@@ -284,18 +286,16 @@ def run_training() -> None:
 
     best_lgbm_model = execute_model_pipeline(
         model_name="LGBM",
-        classifier=LGBMClassifier(
+        classifier=LGBMClassifierWithEarlyStopping(  # My custom classifier
             objective="binary",
             random_state=RANDOM_SEED,
             verbose=-1,
-            # Note: early_stopping_rounds would require eval_set during fit,
-            # which is complex with sklearn pipelines + RandomizedSearchCV.
-            # Instead, we tune n_estimators directly in the search space.
+            n_estimators=1000,
+            early_stopping_round=5,
         ),
         numeric_features=NUMERIC_FEATURES,
         param_dist={
             "classifier__learning_rate": loguniform(0.01, 0.2),
-            "classifier__n_estimators": randint(50, 200),
             "classifier__num_leaves": randint(10, 60),
             "classifier__min_child_weight": loguniform(0.0001, 0.002),
         },
