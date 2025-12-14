@@ -41,6 +41,12 @@ def plot_partial_dependence(
         X: The dataset used for computing partial dependence.
         top_features: List of feature names to plot.
     """
+    X_plot = X.copy()
+    int_cols = X_plot.select_dtypes(
+        include=["int", "int32", "int64", "integer"]
+    ).columns
+    X_plot[int_cols] = X_plot[int_cols].astype(float)
+
     n_features = len(top_features)
     _, axes = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
 
@@ -49,18 +55,18 @@ def plot_partial_dependence(
 
     for i, feature in enumerate(top_features):
         ax = axes[i]
+        is_categorical = (
+            X_plot[feature].dtype == "object"
+            or str(X_plot[feature].dtype) == "category"
+        )
 
         # Compute partial dependence for LGBM
         lgbm_pd = partial_dependence(
             lgbm_model,
-            X,
+            X_plot,
             features=[feature],
             kind="average",
-            categorical_features=(
-                [feature]
-                if X[feature].dtype == "object" or str(X[feature].dtype) == "category"
-                else None
-            ),
+            categorical_features=[feature] if is_categorical else None,
         )
         lgbm_grid = lgbm_pd["grid_values"][0]
         lgbm_avg = lgbm_pd["average"][0]
@@ -68,22 +74,13 @@ def plot_partial_dependence(
         # Compute partial dependence for GLM
         glm_pd = partial_dependence(
             glm_model,
-            X,
+            X_plot,
             features=[feature],
             kind="average",
-            categorical_features=(
-                [feature]
-                if X[feature].dtype == "object" or str(X[feature].dtype) == "category"
-                else None
-            ),
+            categorical_features=[feature] if is_categorical else None,
         )
         glm_grid = glm_pd["grid_values"][0]
         glm_avg = glm_pd["average"][0]
-
-        # Check if feature is categorical
-        is_categorical = (
-            X[feature].dtype == "object" or str(X[feature].dtype) == "category"
-        )
 
         if is_categorical:
             # For categorical features, use bar plot with offset

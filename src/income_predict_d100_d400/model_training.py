@@ -129,20 +129,21 @@ def create_preprocessor(
             ("scaler", StandardScaler()),
         ]
     )
-
     categorical_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="constant", fill_value="missing")),
-            ("onehot", OneHotEncoder(handle_unknown="ignore")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
         ]
     )
-
-    return ColumnTransformer(
+    preprocessor = ColumnTransformer(
         transformers=[
             ("num", numeric_transformer, numeric_features),
             ("cat", categorical_transformer, categorical_features),
         ]
     )
+    preprocessor.set_output(transform="pandas")
+
+    return preprocessor
 
 
 def train_and_tune_model(
