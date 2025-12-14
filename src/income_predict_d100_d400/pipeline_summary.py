@@ -50,11 +50,11 @@ def print_pipeline_summary() -> None:
     print("\n" + "=" * 50)
     print("PIPELINE EXECUTION SUMMARY")
     print("=" * 50)
-    print(f"{'Status':<10} | {'Description':<25} | {'Location'}")
+    print(f"{'Status':<7} | {'Description':<25} | {'Location'}")
     print("-" * 80)
 
     for desc, (exists, path) in results.items():
         status = "✅" if exists else "❌"
-        print(f"{status:<10} | {desc:<25} | {path}")
+        print(f"{status:<6} | {desc:<25} | {path}")
 
     print("-" * 80)
