@@ -193,7 +193,7 @@ def clean_and_binarize_income(df: pd.DataFrame) -> pd.DataFrame:
 
 def replace_question_marks_with_nan(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Replaces '?' with np.nan across all columns in the dataframe.
+    Replaces '?' (plus any whitespace e.g. ' ?') with np.nan across all columns in the dataframe.
 
     Parameters:
         df: The input DataFrame.
@@ -201,7 +201,13 @@ def replace_question_marks_with_nan(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with '?' strings replaced by numpy NaNs.
     """
-    return df.replace("?", np.nan)
+    string_columns = df.select_dtypes(["object"]).columns
+
+    for col in string_columns:
+        df[col] = df[col].str.strip()
+
+    with pd.option_context("future.no_silent_downcasting", True):
+        return df.replace("?", np.nan).infer_objects(copy=False)
 
 
 def trim_string(value: Any) -> Any:

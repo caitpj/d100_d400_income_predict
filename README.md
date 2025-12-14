@@ -77,7 +77,7 @@ cd d100_d400_income_predict
 `docker build -t conda-uciml .` (from root of d100_d400_income_predict)
 
 ### 3. Run the Model Pipeline
-This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key visualisations. It should take a minuite or so to run.
+This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key data files and visualisations. It should take a minuite or so to run.
 ```bash
 docker run --rm --shm-size=2g \
 -e PYTHONUNBUFFERED=1 \
@@ -88,10 +88,9 @@ conda-uciml python src/income_predict_d100_d400/training_pipeline.py
 ### 4. Run Notebooks
 ```bash
 docker run --rm -it \
--p 8888:8888 \
--v "$(pwd):/app" \
-conda-uciml \
-jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+-p 8888:8888 conda-uciml \
+jupyter notebook --ip=0.0.0.0 \
+--port=8888 --no-browser --allow-root
 ```
 From the output of the above code, find and paste the URL into a browser. It should start with: `http://127.0.0.1:8888/?token=...`
 
@@ -116,6 +115,8 @@ docker run --rm -it \
     `pytest`
     - Run Pre-commit Checks (Linting/Formatting):
     `pre-commit run --all-files`
+    - Run becnhmark tests, e.g.:
+    `python d100_d400_income_predict/src/benchmarks/benchmark_csv_parquet.py`
 
 
 ## AI Use
