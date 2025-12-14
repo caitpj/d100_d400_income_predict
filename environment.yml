@@ -1,4 +1,4 @@
-name: d100_d300_env
+name: d100_d400_env
 channels:
   - conda-forge
 dependencies:

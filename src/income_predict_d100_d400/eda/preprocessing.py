@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import chi2_contingency
 
-from notebooks.visualisations import eda_plots as plotting
+from income_predict_d100_d400.eda import plots as plotting
 
 
 def get_data_description(df: pd.DataFrame) -> dict:

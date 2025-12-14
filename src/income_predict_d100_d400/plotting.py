@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any, List, Optional
 
 import matplotlib.pyplot as plt
@@ -8,8 +7,7 @@ import seaborn as sns
 from sklearn.inspection import partial_dependence
 from sklearn.metrics import confusion_matrix
 
-PLOTS_DIR = Path.cwd().resolve() / "data" / "plots"
-PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+from income_predict_d100_d400.robust_paths import PLOTS_DIR
 
 
 def _save_plot(name: Optional[str] = None) -> None:

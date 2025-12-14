@@ -26,14 +26,14 @@ There are two ways to install and run:
 #### 2. Run the Pipeline
 `python -m income_predict_d100_d400.training_pipeline`
 
-or create a your own file and import income_predict_d100_d400:
+or create your own file and import income_predict_d100_d400:
 ```python
-from income_predict_d100_d400.data import load_data
-from income_predict_d100_d400.cleaning import run_cleaning_pipeline
-from income_predict_d100_d400.evaluation import run_evaluation
-from income_predict_d100_d400.model_training import (
+from income_predict_d100_d400 import (
     TARGET,
+    load_data,
     load_training_outputs,
+    run_cleaning_pipeline,
+    run_evaluation,
     run_split,
     run_training,
 )
@@ -109,7 +109,7 @@ docker run --rm -it \
 ```
 
 2. Activate the Environment Once inside the container, activate the specific environment:
-`conda activate d100_d300_env`
+`conda activate d100_d400_env`
 
 3. Run Tests & Checks Since you are developing inside the container, you should run the quality checks manually before committing your code:
     - Run Unit Tests:
