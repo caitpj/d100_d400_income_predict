@@ -38,8 +38,24 @@ def test_constant_column():
 
 
 @pytest.mark.parametrize(
-    "input_data", [np.array([[10, 20], [30, 40]]), np.array([[-1.5, 2.5], [0.5, -0.5]])]
+    "input_data,expected_mean,expected_scale",
+    [
+        (
+            np.array([[1, 2], [3, 4], [5, 6]]),
+            np.array([3.0, 4.0]),
+            np.array([1.633, 1.633]),
+        ),
+        (np.array([[0, 0], [0, 0]]), np.array([0.0, 0.0]), np.array([1.0, 1.0])),
+        (
+            np.array([[-10, 100], [10, -100]]),
+            np.array([0.0, 0.0]),
+            np.array([10.0, 100.0]),
+        ),
+        (np.array([[1.5]]), np.array([1.5]), np.array([1.0])),
+    ],
+    ids=["standard_case", "zero_variance", "negative_values", "single_observation"],
 )
-def test_scaler_output_shape(input_data):
+def test_simple_standard_scaler_parametrised(input_data, expected_mean, expected_scale):
     scaler = SimpleStandardScaler().fit(input_data)
-    assert scaler.transform(input_data).shape == input_data.shape
+    np.testing.assert_allclose(scaler.mean_, expected_mean, rtol=1e-3)
+    np.testing.assert_allclose(scaler.scale_, expected_scale, rtol=1e-2)

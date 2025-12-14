@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -7,29 +8,30 @@ from income_predict_d100_d400.cleaning import (
 )
 
 
-@pytest.fixture
-def sample_df():
-    """Creates a basic sample DataFrame for testing."""
-    return pd.DataFrame(
-        {
-            "education": ["Bachelors", "HS-grad", "Masters"],
-            "age": [25, 30, 45],
-            "workclass": [" Private ", "Self-emp-not-inc", "?"],
-        }
-    )
+@pytest.mark.parametrize(
+    "education, expected", [("Bachelors", 13), ("HS-grad", 9), ("Masters", 14)]
+)
+def test_encode_education(education, expected):
+    df = pd.DataFrame({"education": [education]})
+    result = encode_education(df)
+    assert result["education"].iloc[0] == expected
 
 
-def test_encode_education(sample_df):
-    """Test that education strings are correctly mapped to ordinal integers."""
-    df_result = encode_education(sample_df.copy())
-    expected_values = [13, 9, 14]
-    assert df_result["education"].tolist() == expected_values
-    assert pd.api.types.is_integer_dtype(df_result["education"])
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("Private", "Private"),
+        ("?", np.nan),
+        (" ?", np.nan),
+    ],
+)
+def test_replace_question_marks(raw_value, expected):
+    df = pd.DataFrame({"workclass": [raw_value]})
+    result = replace_question_marks_with_nan(df)
 
+    actual = result["workclass"].iloc[0]
 
-def test_replace_question_marks_with_nan(sample_df):
-    """Test that '?' strings are replaced with numpy NaN."""
-    df_result = replace_question_marks_with_nan(sample_df.copy())
-
-    assert pd.isna(df_result["workclass"][2])
-    assert df_result["workclass"][0] == " Private "
+    if pd.isna(expected):
+        assert pd.isna(actual)
+    else:
+        assert actual == expected
