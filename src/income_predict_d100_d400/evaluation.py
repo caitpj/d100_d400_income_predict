@@ -1,8 +1,8 @@
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import auc, log_loss
+from sklearn.metrics import log_loss, roc_auc_score
 
 from income_predict_d100_d400.plotting import (
     plot_confusion_matrices,
@@ -63,38 +63,11 @@ def evaluate_predictions(
     # Bernoulli deviance (log loss) for binary classification
     evals["deviance"] = log_loss(actuals, preds, sample_weight=weights)
 
-    ordered_samples, cum_actuals = lorenz_curve(actuals, preds, weights)
-    evals["gini"] = 1 - 2 * auc(ordered_samples, cum_actuals)
+    # Formula: Gini = 2 * AUC - 1
+    auc_score = roc_auc_score(actuals, preds, sample_weight=weights)
+    evals["gini"] = 2 * auc_score - 1
 
     return pd.DataFrame(evals, index=[0]).T
-
-
-def lorenz_curve(
-    y_true: np.ndarray, y_pred: np.ndarray, exposure: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Calculates the Lorenz curve points for Gini coefficient computation.
-
-    Parameters:
-        y_true: Array of true target values.
-        y_pred: Array of predicted values (risk scores).
-        exposure: Array of weights or exposure values.
-
-    Returns:
-        A tuple containing:
-            - cumulated_samples: x-axis coordinates (cumulative population).
-            - cumulated_claim_amount: y-axis coordinates (cumulative target).
-    """
-    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
-    exposure = np.asarray(exposure)
-
-    ranking = np.argsort(y_pred)
-    ranked_exposure = exposure[ranking]
-    ranked_pure_premium = y_true[ranking]
-    cumulated_claim_amount = np.cumsum(ranked_pure_premium * ranked_exposure)
-    cumulated_claim_amount /= cumulated_claim_amount[-1]
-    cumulated_samples = np.linspace(0, 1, len(cumulated_claim_amount))
-    return cumulated_samples, cumulated_claim_amount
 
 
 def get_feature_importance(

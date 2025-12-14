@@ -5,21 +5,18 @@ Result:
 While Polars is significantly faster than Pandas relativley speaking (2x+ speedup),
 the absolute time difference is small (fractions of a second) for this dataset size.
 Given the length of time Pandas has been around and its ecosystem, it is likely the better
-in terms of community support and library compatibility. However, for larger datasets or
-performance-critical applications, Polars is worth considering.
+in terms of community support and library compatibility. However, for larger datasets
+(millions of rows) Polars is worth considering.
 """
 
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import polars as pl
 
-# Setup paths
-current_file = Path(__file__).resolve()
-src_directory = current_file.parent.parent
-DATA_DIR = src_directory / "data"
+from income_predict_d100_d400.robust_paths import DATA_DIR
+
 PARQUET_PATH = DATA_DIR / "census_income.parquet"
 
 COLUMN_RENAMING = {

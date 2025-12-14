@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, List, Optional
 
 import matplotlib.pyplot as plt
@@ -7,9 +8,8 @@ import seaborn as sns
 from sklearn.inspection import partial_dependence
 from sklearn.metrics import confusion_matrix
 
-from income_predict_d100_d400.robust_paths import PLOTS_DIR
-
-_plot_counter = 0
+PLOTS_DIR = Path.cwd().resolve() / "data" / "plots"
+PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _save_plot(name: Optional[str] = None) -> None:
@@ -19,13 +19,8 @@ def _save_plot(name: Optional[str] = None) -> None:
     Parameters:
         name: Optional name for the file. If None, uses a counter.
     """
-    global _plot_counter
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-    if name:
-        filepath = PLOTS_DIR / f"{name}.png"
-    else:
-        _plot_counter += 1
-        filepath = PLOTS_DIR / f"plot_{_plot_counter:03d}.png"
+    filepath = PLOTS_DIR / f"{name}.png"
     plt.savefig(filepath, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"Saved plot to: {filepath}")

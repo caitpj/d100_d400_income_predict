@@ -123,8 +123,8 @@ Now, every time you run `git commit`, your local machine will fist check it meet
 Some code was AI generated, notably:
 - Visualisations
 - Pandas vs Polars benchmark test
-- Pretty terminal outputs (e.g. download animation, output table)
-- Fully descriptive doc strings
+- Pretty terminal outputs
+- Full docstrings
 
 In other areas, AI was used to help with debugging, notably:
 - Docker related issues

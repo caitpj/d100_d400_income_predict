@@ -1,8 +1,9 @@
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from income_predict_d100_d400.robust_paths import DATA_DIR
 
 COLUMN_RENAMING = {
     "age": "age",
@@ -275,12 +276,6 @@ def run_cleaning_pipeline(df: pd.DataFrame) -> None:
     """
     df = full_clean(df)
 
-    if (Path.cwd() / "src").exists():
-        data_dir = Path.cwd() / "src" / "data"
-    else:
-        data_dir = Path.cwd() / "data"
-
-    data_dir.mkdir(parents=True, exist_ok=True)
-    output_path = data_dir / "cleaned_census_income.parquet"
+    output_path = DATA_DIR / "cleaned_census_income.parquet"
 
     df.to_parquet(output_path)
