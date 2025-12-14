@@ -14,8 +14,9 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder
 
+from income_predict_d100_d400.feature_engineering import SimpleStandardScaler
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
 RANDOM_SEED = 42
@@ -126,7 +127,7 @@ def create_preprocessor(
     numeric_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
+            ("scaler", SimpleStandardScaler()),  # My custom transformer
         ]
     )
     categorical_transformer = Pipeline(
@@ -284,7 +285,12 @@ def run_training() -> None:
     best_lgbm_model = execute_model_pipeline(
         model_name="LGBM",
         classifier=LGBMClassifier(
-            objective="binary", random_state=RANDOM_SEED, verbose=-1
+            objective="binary",
+            random_state=RANDOM_SEED,
+            verbose=-1,
+            # Note: early_stopping_rounds would require eval_set during fit,
+            # which is complex with sklearn pipelines + RandomizedSearchCV.
+            # Instead, we tune n_estimators directly in the search space.
         ),
         numeric_features=NUMERIC_FEATURES,
         param_dist={
