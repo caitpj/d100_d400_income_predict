@@ -31,6 +31,7 @@ def test_constant_column():
     data_const = np.array([[1], [1], [1]])
     scaler = SimpleStandardScaler().fit(data_const)
 
+    assert scaler.scale_ is not None
     assert scaler.scale_[0] == 1.0
     transformed = scaler.transform(data_const)
     np.testing.assert_array_equal(transformed, np.zeros((3, 1)))

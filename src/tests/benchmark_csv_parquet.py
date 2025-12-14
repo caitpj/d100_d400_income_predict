@@ -4,10 +4,9 @@ Run multiple iterations for accuracy.
 
 Result:
 While Parquet is significantly faster than CSV relativley speaking (around 2x speedup),
-the absolute time difference is small for this dataset size. It's also worth pointing out
-that Parquet files are typically much smaller on disk census_income.parquet is 500kb vs
-census_income.csv at 5.3MB, 10x smaller. Given these results, Parquet is the recommended
-format for performance and storage efficiency.
+the absolute time difference is small for this dataset size. Crucially, Parquet files are
+typically much smaller on disk (approx. 10x smaller for this dataset). Given these results,
+Parquet is the recommended format for performance and storage efficiency.
 """
 
 import statistics
@@ -17,16 +16,24 @@ from pathlib import Path
 
 import pandas as pd
 
-current_file = Path(__file__).resolve()
-src_directory = current_file.parent.parent
-if str(src_directory) not in sys.path:
-    sys.path.append(str(src_directory))
+# Hacky path fix to import from src without installing
+src_dir = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(src_dir))
 
 from income_predict_d100_d400.cleaning import full_clean
+from income_predict_d100_d400.robust_paths import DATA_DIR
 
 # Configuration
 NUM_ITERATIONS = 10
-DATA_FILE_PATH = src_directory / "data" / "census_income.parquet"
+DATA_FILE_PATH = DATA_DIR / "census_income.parquet"
+
+
+def convert_bytes(num):
+    """Convert bytes to a human-readable format (KB, MB, GB, etc.)."""
+    for unit in ["bytes", "KB", "MB", "GB", "TB", "PB"]:
+        if num < 1024.0:
+            return f"{num:.2f} {unit}"
+        num /= 1024.0
 
 
 def setup_files():
@@ -51,12 +58,16 @@ def setup_files():
     # Create source files for the benchmark
     print(f"Creating {source_csv}...")
     df_raw.to_csv(source_csv, index=False)
+    csv_size = source_csv.stat().st_size
+    print(f"  -> File size: {convert_bytes(csv_size)}")
 
     print(f"Creating {source_parquet}...")
     df_raw.to_parquet(source_parquet, index=False)
+    parquet_size = source_parquet.stat().st_size
+    print(f"  -> File size: {convert_bytes(parquet_size)}")
 
     print("Setup complete.\n")
-    return source_csv, source_parquet
+    return source_csv, source_parquet, csv_size, parquet_size
 
 
 def run_benchmark_cycle(source_file, output_file, format_type):
@@ -65,6 +76,8 @@ def run_benchmark_cycle(source_file, output_file, format_type):
 
     # Load
     if format_type == "csv":
+        # Note: CSV read requires specifying all data types for optimal speed/memory,
+        # but for a fair comparison against Parquet's automatic typing, we leave it out here.
         df = pd.read_csv(source_file)
     else:
         df = pd.read_parquet(source_file)
@@ -76,13 +89,14 @@ def run_benchmark_cycle(source_file, output_file, format_type):
     if format_type == "csv":
         df.to_csv(output_file, index=False)
     else:
+        # Parquet compression (default is 'snappy' in pandas) is key to its size advantage
         df.to_parquet(output_file, index=False)
 
     return time.perf_counter() - start_time
 
 
 def main():
-    source_csv, source_parquet = setup_files()
+    source_csv, source_parquet, csv_size, parquet_size = setup_files()
     output_csv = Path("temp_result.csv")
     output_parquet = Path("temp_result.parquet")
 
@@ -120,16 +134,30 @@ def main():
     print("\n" + "=" * 40)
     print(f"BENCHMARK RESULTS (Average over {NUM_ITERATIONS} runs)")
     print("=" * 40)
-    print(f"CSV Average Time:     {avg_csv:.4f}s")
-    print(f"Parquet Average Time: {avg_pq:.4f}s")
-    print("-" * 40)
+    print("⏱️ Time Performance:")
+    print(f"  CSV Average Time:     {avg_csv:.4f}s")
+    print(f"  Parquet Average Time: {avg_pq:.4f}s")
 
     if avg_csv < avg_pq:
         speedup = avg_pq / avg_csv
-        print(f"Winner: CSV ({speedup:.2f}x faster)")
+        print(f"  Winner: CSV ({speedup:.2f}x faster)")
     else:
         speedup = avg_csv / avg_pq
-        print(f"Winner: Parquet ({speedup:.2f}x faster)")
+        print(f"  Winner: Parquet ({speedup:.2f}x faster)")
+
+    print("-" * 40)
+    print("📦 Storage Efficiency:")
+    print(f"  CSV File Size:        {convert_bytes(csv_size)}")
+    print(f"  Parquet File Size:    {convert_bytes(parquet_size)}")
+
+    if csv_size < parquet_size:
+        storage_ratio = parquet_size / csv_size
+        print(f"  Winner: CSV ({storage_ratio:.2f}x smaller)")
+    else:
+        storage_ratio = csv_size / parquet_size
+        print(f"  Winner: Parquet ({storage_ratio:.2f}x smaller)")
+
+    print("=" * 40)
 
 
 if __name__ == "__main__":
