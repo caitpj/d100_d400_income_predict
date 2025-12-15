@@ -1,82 +1,35 @@
-from typing import Any, List, Optional
+from typing import Any
 
+import numpy as np
 import polars as pl
 from lightgbm import LGBMClassifier
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import train_test_split
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import check_array, check_is_fitted
 
 
-class SimpleStandardScaler(BaseEstimator, TransformerMixin):
+class SignedLogTransformer(BaseEstimator, TransformerMixin):
     """
-    A simple StandardScaler that supports Polars DataFrames natively.
+    Applies a log transformation that handles negative values and zeros.
+    Formula: sign(x) * log(1 + |x|)
     """
 
-    def __init__(self) -> None:
-        self.means_: Optional[List[float]] = None
-        self.stds_: Optional[List[float]] = None
-        self.feature_names_in_: Optional[List[str]] = None
-
-    def fit(self, X: pl.DataFrame, y: Any = None) -> "SimpleStandardScaler":
+    def fit(self, X, y=None):
         """
-        Compute the mean and std to be used for later scaling.
-
-        Parameters:
-            X: The input data (Polars DataFrame).
-            y: Ignored, exists for compatibility.
-
-        Returns:
-            self: The fitted scaler.
+        Validates input data. This transformer is stateless (learns nothing).
         """
-        # Convert to pandas for simple calculation (method is on the Polars object)
-        X_pd = X.to_pandas()
-
-        self.feature_names_in_ = X_pd.columns.tolist()
-        self.means_ = X_pd.mean().tolist()
-        self.stds_ = X_pd.std().tolist()
-
+        check_array(X)
+        self.n_features_in_ = X.shape[1]
+        self.is_fitted_ = True
         return self
 
-    def transform(self, X: pl.DataFrame) -> pl.DataFrame:
+    def transform(self, X):
         """
-        Perform standardization by centering and scaling.
-
-        Parameters:
-            X: The input data to transform (Polars DataFrame).
-
-        Returns:
-            The transformed data as a Polars DataFrame.
+        Apply the signed log transformation.
         """
-        check_is_fitted(self, ["means_", "stds_"])
-
-        assert self.feature_names_in_ is not None
-        assert self.means_ is not None
-        assert self.stds_ is not None
-
-        # Convert to pandas for simple math broadcasting
-        X_pd = X.to_pandas()
-        X_copy = X_pd.copy()
-
-        for i, col in enumerate(self.feature_names_in_):
-            X_copy[col] = (X_copy[col] - self.means_[i]) / self.stds_[i]
-
-        return pl.from_pandas(X_copy)
-
-    def get_feature_names_out(
-        self, input_features: Optional[List[str]] = None
-    ) -> List[str]:
-        """
-        Get output feature names for transformation.
-
-        Parameters:
-            input_features: Ignored, exists for compatibility.
-
-        Returns:
-            List of feature names.
-        """
-        check_is_fitted(self, ["feature_names_in_"])
-        assert self.feature_names_in_ is not None
-        return self.feature_names_in_
+        check_is_fitted(self, "is_fitted_")
+        X = check_array(X)
+        return np.sign(X) * np.log1p(np.abs(X))
 
 
 class LGBMClassifierWithEarlyStopping(LGBMClassifier):

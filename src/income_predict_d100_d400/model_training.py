@@ -13,11 +13,11 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from income_predict_d100_d400.feature_engineering import (
     LGBMClassifierWithEarlyStopping,
-    SimpleStandardScaler,
+    SignedLogTransformer,
 )
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
@@ -126,7 +126,11 @@ def create_preprocessor(
     numeric_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", SimpleStandardScaler()),
+            (
+                "log_transform",
+                SignedLogTransformer(),
+            ),  # My custom class, used to fix skew/outliers
+            ("scaler", StandardScaler()),
         ]
     )
     categorical_transformer = Pipeline(
