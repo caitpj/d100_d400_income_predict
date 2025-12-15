@@ -17,10 +17,6 @@ from typing import Tuple
 
 import pandas as pd
 
-# Hacky path fix to import from src without installing
-src_dir = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(src_dir))
-
 from income_predict_d100_d400.cleaning import full_clean
 from income_predict_d100_d400.robust_paths import DATA_DIR
 

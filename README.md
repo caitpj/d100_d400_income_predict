@@ -115,8 +115,8 @@ docker run --rm -it \
     `pytest`
     - Run Pre-commit Checks (Linting/Formatting):
     `pre-commit run --all-files`
-    - Run becnhmark tests, e.g.:
-    `python d100_d400_income_predict/src/benchmarks/benchmark_csv_parquet.py`
+    - Run Benchmark Tests, e.g.:
+    `python src/benchmarks/benchmark_csv_parquet.py`
 
 
 ## AI Use

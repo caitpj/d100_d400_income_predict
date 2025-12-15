@@ -1,12 +1,5 @@
-import sys
-from pathlib import Path
-
 import numpy as np
 import pytest
-
-current_file = Path(__file__).resolve()
-src_directory = current_file.parent.parent
-sys.path.append(str(src_directory))
 
 from income_predict_d100_d400.feature_engineering import SimpleStandardScaler
 
