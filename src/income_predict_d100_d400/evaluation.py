@@ -8,6 +8,7 @@ from income_predict_d100_d400.plotting import (
     plot_calibration_curve,
     plot_confusion_matrices,
     plot_partial_dependence,
+    plot_roc_curve,
 )
 
 
@@ -99,6 +100,12 @@ def run_evaluation(
     )
 
     plot_calibration_curve(
+        test_eval_df[target].cast(pl.Int32).to_numpy(),
+        test_eval_df["glm_preds"].to_numpy(),
+        test_eval_df["lgbm_preds"].to_numpy(),
+    )
+
+    plot_roc_curve(
         test_eval_df[target].cast(pl.Int32).to_numpy(),
         test_eval_df["glm_preds"].to_numpy(),
         test_eval_df["lgbm_preds"].to_numpy(),

@@ -12,6 +12,8 @@ EXPECTED_ARTIFACTS: Dict[str, Path] = {
     "LGBM Model": DATA_DIR / "lgbm_model.joblib",
     "Train Features": DATA_DIR / "train_features.parquet",
     "Confusion Matrix Plot": PLOTS_DIR / "classification_plot.png",
+    "Calibration Plot": PLOTS_DIR / "calibration_plot.png",
+    "ROC Curve Plot": PLOTS_DIR / "roc_curve_plot.png",
 }
 
 

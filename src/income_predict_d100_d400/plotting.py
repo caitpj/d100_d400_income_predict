@@ -7,7 +7,7 @@ import polars as pl
 import seaborn as sns
 from sklearn.calibration import calibration_curve
 from sklearn.inspection import partial_dependence
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import auc, confusion_matrix, roc_curve
 
 from income_predict_d100_d400.robust_paths import PLOTS_DIR
 
@@ -24,6 +24,55 @@ def _save_plot(name: Optional[str] = None) -> None:
     plt.savefig(filepath, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"Saved plot to: {filepath}")
+
+
+def plot_roc_curve(
+    y_true: np.ndarray, glm_preds: np.ndarray, lgbm_preds: np.ndarray
+) -> None:
+    """
+    Plots ROC curves for GLM and LGBM models.
+    Saves the plot to file.
+
+    Parameters:
+        y_true: Array of true labels.
+        glm_preds: Array of GLM prediction probabilities.
+        lgbm_preds: Array of LGBM prediction probabilities.
+    """
+    plt.figure(figsize=(8, 6))
+
+    # Plot diagonal line (random guess)
+    plt.plot([0, 1], [0, 1], "k--", label="Random Chance")
+
+    # GLM
+    fpr_glm, tpr_glm, _ = roc_curve(y_true, glm_preds)
+    roc_auc_glm = auc(fpr_glm, tpr_glm)
+    plt.plot(
+        fpr_glm,
+        tpr_glm,
+        label=f"GLM (AUC = {roc_auc_glm:.3f})",
+        color="orange",
+        linewidth=2,
+    )
+
+    # LGBM
+    fpr_lgbm, tpr_lgbm, _ = roc_curve(y_true, lgbm_preds)
+    roc_auc_lgbm = auc(fpr_lgbm, tpr_lgbm)
+    plt.plot(
+        fpr_lgbm,
+        tpr_lgbm,
+        label=f"LGBM (AUC = {roc_auc_lgbm:.3f})",
+        color="blue",
+        linewidth=2,
+    )
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve")
+    plt.legend(loc="lower right")
+    plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    _save_plot(name="roc_curve_plot")
 
 
 def plot_calibration_curve(
