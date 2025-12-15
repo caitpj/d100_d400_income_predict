@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 import joblib
 import numpy as np
 import polars as pl
+from lightgbm import LGBMClassifier
 from scipy.stats import loguniform, randint, uniform
 from sklearn.base import BaseEstimator
 from sklearn.compose import ColumnTransformer
@@ -15,10 +16,7 @@ from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from income_predict_d100_d400.feature_engineering import (
-    LGBMClassifierWithEarlyStopping,
-    SignedLogTransformer,
-)
+from income_predict_d100_d400.feature_engineering import SignedLogTransformer
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
 RANDOM_SEED = 42
@@ -272,7 +270,7 @@ def run_training() -> None:
     best_glm_model = execute_model_pipeline(
         model_name="GLM",
         classifier=SGDClassifier(
-            loss="log_loss", max_iter=500, random_state=RANDOM_SEED
+            loss="log_loss", max_iter=1000, random_state=RANDOM_SEED
         ),
         numeric_features=NUMERIC_FEATURES_GLM,
         param_dist={
@@ -288,16 +286,15 @@ def run_training() -> None:
 
     best_lgbm_model = execute_model_pipeline(
         model_name="LGBM",
-        classifier=LGBMClassifierWithEarlyStopping(
+        classifier=LGBMClassifier(
             objective="binary",
             random_state=RANDOM_SEED,
             verbose=-1,
-            n_estimators=1000,
-            early_stopping_round=4,
             n_jobs=1,
         ),
         numeric_features=NUMERIC_FEATURES,
         param_dist={
+            "classifier__n_estimators": randint(100, 1000),
             "classifier__learning_rate": loguniform(0.01, 0.2),
             "classifier__num_leaves": randint(10, 50),
             "classifier__min_child_weight": loguniform(0.0001, 0.002),
@@ -306,7 +303,7 @@ def run_training() -> None:
         train_y=train_y,
         test_X=test_X,
         test_y=test_y,
-        n_iter=5,
+        n_iter=10,
     )
 
     joblib.dump(best_glm_model, DATA_DIR / "glm_model.joblib")

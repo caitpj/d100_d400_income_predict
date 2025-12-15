@@ -130,6 +130,8 @@ def run_evaluation(
         if original not in original_features and original in train_features.columns:
             original_features.append(original)
 
-    plot_partial_dependence(
-        glm_model, lgbm_model, train_features, original_features[:5]
-    )
+    # Subsample data for PDP to avoid hanging
+    pdp_sample_size = min(1000, len(train_features))
+    pdp_data = train_features.sample(n=pdp_sample_size, seed=42)
+
+    plot_partial_dependence(glm_model, lgbm_model, pdp_data, original_features[:5])
