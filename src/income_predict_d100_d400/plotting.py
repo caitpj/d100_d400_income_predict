@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import seaborn as sns
+from sklearn.calibration import calibration_curve
 from sklearn.inspection import partial_dependence
 from sklearn.metrics import confusion_matrix
 
@@ -23,6 +24,55 @@ def _save_plot(name: Optional[str] = None) -> None:
     plt.savefig(filepath, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"Saved plot to: {filepath}")
+
+
+def plot_calibration_curve(
+    y_true: np.ndarray, glm_preds: np.ndarray, lgbm_preds: np.ndarray
+) -> None:
+    """
+    Plots calibration curves (reliability diagrams) for GLM and LGBM models.
+    Saves the plot to file.
+
+    Parameters:
+        y_true: Array of true labels.
+        glm_preds: Array of GLM prediction probabilities.
+        lgbm_preds: Array of LGBM prediction probabilities.
+    """
+    plt.figure(figsize=(8, 6))
+
+    # Plot perfectly calibrated line
+    plt.plot([0, 1], [0, 1], "k--", label="Perfectly Calibrated")
+
+    # Calculate and plot GLM calibration
+    prob_true_glm, prob_pred_glm = calibration_curve(y_true, glm_preds, n_bins=10)
+    plt.plot(
+        prob_pred_glm,
+        prob_true_glm,
+        marker="s",
+        linestyle="-",
+        label="GLM",
+        color="orange",
+    )
+
+    # Calculate and plot LGBM calibration
+    prob_true_lgbm, prob_pred_lgbm = calibration_curve(y_true, lgbm_preds, n_bins=10)
+    plt.plot(
+        prob_pred_lgbm,
+        prob_true_lgbm,
+        marker="s",
+        linestyle="-",
+        label="LGBM",
+        color="blue",
+    )
+
+    plt.xlabel("Mean Predicted Probability")
+    plt.ylabel("Fraction of Positives")
+    plt.title("Calibration Curve (Reliability Diagram)")
+    plt.legend(loc="lower right")
+    plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    _save_plot(name="calibration_plot")
 
 
 def plot_partial_dependence(

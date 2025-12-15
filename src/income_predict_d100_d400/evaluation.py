@@ -5,6 +5,7 @@ import polars as pl
 from sklearn.metrics import log_loss, roc_auc_score
 
 from income_predict_d100_d400.plotting import (
+    plot_calibration_curve,
     plot_confusion_matrices,
     plot_partial_dependence,
 )
@@ -92,6 +93,12 @@ def run_evaluation(
     print(lgbm_eval)
 
     plot_confusion_matrices(
+        test_eval_df[target].cast(pl.Int32).to_numpy(),
+        test_eval_df["glm_preds"].to_numpy(),
+        test_eval_df["lgbm_preds"].to_numpy(),
+    )
+
+    plot_calibration_curve(
         test_eval_df[target].cast(pl.Int32).to_numpy(),
         test_eval_df["glm_preds"].to_numpy(),
         test_eval_df["lgbm_preds"].to_numpy(),
