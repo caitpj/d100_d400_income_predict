@@ -5,7 +5,7 @@ warnings.filterwarnings(
     message=".*X does not have valid feature names, but LGBMClassifier was fitted with feature names.*",  # noqa: E501
 )
 
-import pandas as pd
+import polars as pl
 
 from income_predict_d100_d400.cleaning import run_cleaning_pipeline
 from income_predict_d100_d400.data import load_data
@@ -21,7 +21,7 @@ from income_predict_d100_d400.pipeline_summary import print_pipeline_summary
 print("Starting Pipeline...")
 
 file_path = load_data()
-df_raw = pd.read_parquet(file_path)
+df_raw = pl.read_parquet(file_path)
 
 run_cleaning_pipeline(df_raw)
 run_split()

@@ -1,7 +1,6 @@
-from typing import Any, Dict, List
+from typing import Dict, List
 
-import numpy as np
-import pandas as pd
+import polars as pl
 
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
@@ -43,7 +42,7 @@ EDUCATION_ORDER: Dict[str, int] = {
 }
 
 
-def encode_education(df: pd.DataFrame) -> pd.DataFrame:
+def encode_education(df: pl.DataFrame) -> pl.DataFrame:
     """
     Convert education to ordinal numeric values.
 
@@ -53,11 +52,12 @@ def encode_education(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with the 'education' column mapped to integers.
     """
-    df["education"] = df["education"].map(EDUCATION_ORDER)
-    return df
+    return df.with_columns(
+        pl.col("education").replace(EDUCATION_ORDER, default=None).cast(pl.Int64)
+    )
 
 
-def combine_capital(df: pd.DataFrame) -> pd.DataFrame:
+def combine_capital(df: pl.DataFrame) -> pl.DataFrame:
     """
     Combine capital_gain and capital_loss into single capital_net column.
 
@@ -67,12 +67,12 @@ def combine_capital(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with a new 'capital_net' column and original columns removed.
     """
-    df["capital_net"] = df["capital_gain"] - df["capital_loss"]
-    df = df.drop(columns=["capital_gain", "capital_loss"])
-    return df
+    return df.with_columns(
+        (pl.col("capital_gain") - pl.col("capital_loss")).alias("capital_net")
+    ).drop(["capital_gain", "capital_loss"])
 
 
-def combine_married(df: pd.DataFrame) -> pd.DataFrame:
+def combine_married(df: pl.DataFrame) -> pl.DataFrame:
     """
     Combine Husband and Wife into Married in relationship column.
 
@@ -82,13 +82,12 @@ def combine_married(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with updated 'relationship' values.
     """
-    df["relationship"] = df["relationship"].replace(
-        {"Husband": "Married", "Wife": "Married"}
+    return df.with_columns(
+        pl.col("relationship").replace({"Husband": "Married", "Wife": "Married"})
     )
-    return df
 
 
-def binarize_race(df: pd.DataFrame) -> pd.DataFrame:
+def binarize_race(df: pl.DataFrame) -> pl.DataFrame:
     """
     Convert race column to binary columns: is_white and is_black.
 
@@ -98,13 +97,13 @@ def binarize_race(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with 'is_white' and 'is_black' columns added and 'race' removed.
     """
-    df["is_white"] = df["race"] == "White"
-    df["is_black"] = df["race"] == "Black"
-    df = df.drop(columns=["race"])
-    return df
+    return df.with_columns(
+        (pl.col("race") == "White").alias("is_white"),
+        (pl.col("race") == "Black").alias("is_black"),
+    ).drop("race")
 
 
-def binarize_sex(df: pd.DataFrame) -> pd.DataFrame:
+def binarize_sex(df: pl.DataFrame) -> pl.DataFrame:
     """
     Convert sex column to binary column: is_female.
 
@@ -114,12 +113,10 @@ def binarize_sex(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with 'is_female' column added and 'sex' removed.
     """
-    df["is_female"] = df["sex"] == "Female"
-    df = df.drop(columns=["sex"])
-    return df
+    return df.with_columns((pl.col("sex") == "Female").alias("is_female")).drop("sex")
 
 
-def add_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_interaction_features(df: pl.DataFrame) -> pl.DataFrame:
     """
     Add interaction features for GLM modeling.
 
@@ -129,11 +126,12 @@ def add_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with a new 'age_x_education' column.
     """
-    df["age_x_education"] = df["age"] * df["education"]
-    return df
+    return df.with_columns(
+        (pl.col("age") * pl.col("education")).alias("age_x_education")
+    )
 
 
-def add_unique_id(df: pd.DataFrame) -> pd.DataFrame:
+def add_unique_id(df: pl.DataFrame) -> pl.DataFrame:
     """
     Adds a unique_id column to the dataframe as the first column.
 
@@ -143,15 +141,14 @@ def add_unique_id(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with a 'unique_id' column inserted at index 0.
     """
-    df.insert(0, "unique_id", range(len(df)))
-    return df
+    return df.with_row_index(name="unique_id")
 
 
 def clean_columns(
-    df: pd.DataFrame,
+    df: pl.DataFrame,
     renaming_map: Dict[str, str] = COLUMN_RENAMING,
     columns_to_drop: List[str] = COLUMNS_TO_DROP,
-) -> pd.DataFrame:
+) -> pl.DataFrame:
     """
     Renames a standard set of columns to use snake_case and drops predefined columns.
 
@@ -165,14 +162,12 @@ def clean_columns(
     """
     columns_to_drop_in_df = [col for col in columns_to_drop if col in df.columns]
     if columns_to_drop_in_df:
-        df = df.drop(columns=columns_to_drop_in_df)
+        df = df.drop(columns_to_drop_in_df)
 
-    df = df.rename(columns=renaming_map)
-
-    return df
+    return df.rename(renaming_map)
 
 
-def clean_and_binarize_income(df: pd.DataFrame) -> pd.DataFrame:
+def clean_and_binarize_income(df: pl.DataFrame) -> pl.DataFrame:
     """
     Cleans the 'income' column and converts it into a boolean field.
 
@@ -182,51 +177,25 @@ def clean_and_binarize_income(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with a cleaned 'income' column and a new 'high_income' boolean column.
     """
-    income_col = "income"
-    high_income_col = "high_income"
-    cleaned_income = df[income_col].astype(str).str.strip().str.strip(".")
-    df[income_col] = cleaned_income
-    df[high_income_col] = cleaned_income == ">50K"
-
-    return df
+    return df.with_columns(
+        pl.col("income").cast(pl.String).str.strip_chars().str.strip_chars(".")
+    ).with_columns((pl.col("income") == ">50K").alias("high_income"))
 
 
-def replace_question_marks_with_nan(df: pd.DataFrame) -> pd.DataFrame:
+def replace_question_marks_with_nan(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Replaces '?' (plus any whitespace e.g. ' ?') with np.nan across all columns in the dataframe.
+    Replaces '?' (plus any whitespace e.g. ' ?') with null across all columns in the dataframe.
 
     Parameters:
         df: The input DataFrame.
 
     Returns:
-        The DataFrame with '?' strings replaced by numpy NaNs.
+        The DataFrame with '?' strings replaced by nulls.
     """
-    string_columns = df.select_dtypes(["object"]).columns
-
-    for col in string_columns:
-        df[col] = df[col].str.strip()
-
-    with pd.option_context("future.no_silent_downcasting", True):
-        return df.replace("?", np.nan).infer_objects(copy=False)
+    return df.with_columns(pl.col(pl.String).str.strip_chars().replace("?", None))
 
 
-def trim_string(value: Any) -> Any:
-    """
-    Trims leading and trailing whitespace from a single string.
-
-    Parameters:
-        value: The value to trim.
-
-    Returns:
-        The trimmed string, or the original value if it is not a string.
-    """
-    if isinstance(value, str):
-        return value.strip()
-
-    return value
-
-
-def trim_dataframe_whitespace(df: pd.DataFrame) -> pd.DataFrame:
+def trim_dataframe_whitespace(df: pl.DataFrame) -> pl.DataFrame:
     """
     Automatically detects string columns and strips whitespace from all values.
 
@@ -236,18 +205,10 @@ def trim_dataframe_whitespace(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The DataFrame with whitespace stripped from all string columns.
     """
-    string_columns = df.select_dtypes(include=["object", "string"]).columns
-
-    for col in string_columns:
-        if pd.api.types.is_string_dtype(df[col]):
-            df[col] = df[col].str.strip()
-        else:
-            df[col] = df[col].apply(trim_string)
-
-    return df
+    return df.with_columns(pl.col(pl.String).str.strip_chars())
 
 
-def full_clean(df: pd.DataFrame) -> pd.DataFrame:
+def full_clean(df: pl.DataFrame) -> pl.DataFrame:
     """
     Master function that runs all cleaning steps in a logical order.
 
@@ -257,7 +218,6 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The fully cleaned and preprocessed DataFrame.
     """
-    df = df.copy()
     df = add_unique_id(df)
     df = clean_and_binarize_income(df)
     df = clean_columns(df, COLUMN_RENAMING)
@@ -273,7 +233,7 @@ def full_clean(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def run_cleaning_pipeline(df: pd.DataFrame) -> None:
+def run_cleaning_pipeline(df: pl.DataFrame) -> None:
     """
     Runs full cleaning pipeline and saves result in parquet format.
 
@@ -284,4 +244,4 @@ def run_cleaning_pipeline(df: pd.DataFrame) -> None:
 
     output_path = DATA_DIR / "cleaned_census_income.parquet"
 
-    df.to_parquet(output_path)
+    df.write_parquet(output_path)

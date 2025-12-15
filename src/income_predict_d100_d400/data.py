@@ -1,12 +1,12 @@
 from pathlib import Path
 
-import pandas as pd
+import polars as pl
 from ucimlrepo import fetch_ucirepo
 
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
 
-def fetch_census_data() -> pd.DataFrame:
+def fetch_census_data() -> pl.DataFrame:
     """
     Fetches the dataset from UCI.
 
@@ -23,9 +23,15 @@ def fetch_census_data() -> pd.DataFrame:
     print("⬇️  Downloading... Done!")
 
     if data.data.original is not None:
-        return data.data.original
+        return pl.from_pandas(data.data.original)
 
-    return pd.concat([data.data.features, data.data.targets], axis=1)
+    return pl.concat(
+        [
+            pl.from_pandas(data.data.features),
+            pl.from_pandas(data.data.targets),
+        ],
+        how="horizontal",
+    )
 
 
 def load_data() -> Path:
@@ -52,6 +58,6 @@ we're less likley to get blocked by UCI for spamming downloads)
     except Exception as e:
         raise RuntimeError(f"Error downloading data: {e}") from e
 
-    df.to_parquet(output_path, index=False)
+    df.write_parquet(output_path)
 
     return output_path

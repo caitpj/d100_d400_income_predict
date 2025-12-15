@@ -4,9 +4,10 @@ Simple benchmark comparing Pandas vs Polars for loading and cleaning census data
 Result:
 While Polars is significantly faster than Pandas relativley speaking (2x+ speedup),
 the absolute time difference is small (fractions of a second) for this dataset size.
-Given the length of time Pandas has been around and its ecosystem, it is likely the better
-in terms of community support and library compatibility. However, for larger datasets
-(millions of rows) Polars is worth considering.
+Although Pandas has been around for much longer, and therfore is more stable and feature-rich,
+Polars has been catching up. For example skit-learn now has support for Polars DataFrames.
+However, there is still room to improve, e.g. pandas is still the best choice with seaborn.
+As a result, I selected Polars for the bulk of this project, and pandas for edge cases.
 """
 
 import time
@@ -123,19 +124,16 @@ def main() -> None:
     print(f"Data file: {PARQUET_PATH}")
     print("-" * 50)
 
-    # Pandas benchmark
     start = time.perf_counter()
     pandas_df = pandas_load_and_clean()
     pandas_time = time.perf_counter() - start
     print(f"Pandas:  {pandas_time:.4f}s  ({len(pandas_df)} rows)")
 
-    # Polars benchmark
     start = time.perf_counter()
     polars_df = polars_load_and_clean()
     polars_time = time.perf_counter() - start
     print(f"Polars:  {polars_time:.4f}s  ({len(polars_df)} rows)")
 
-    # Summary
     print("-" * 50)
     speedup = pandas_time / polars_time
     winner = "Polars" if speedup > 1 else "Pandas"

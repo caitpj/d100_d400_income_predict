@@ -24,7 +24,7 @@ There are two ways to install and run:
 `pip install income_predict_d100_d400`
 
 #### 2. Run the Pipeline
-`python -m income_predict_d100_d400.training_pipeline`
+`python -m income_predict_d100_d400.pipeline`
 
 or create your own file and import income_predict_d100_d400:
 ```python
@@ -82,7 +82,7 @@ This runs the model in the Docker container, including downloading the data, cle
 docker run --rm --shm-size=2g \
 -e PYTHONUNBUFFERED=1 \
 -e OMP_NUM_THREADS=1 \
-conda-uciml python src/income_predict_d100_d400/training_pipeline.py
+conda-uciml python src/income_predict_d100_d400/pipeline.py
 ```
 
 ### 4. Run Notebooks
@@ -122,7 +122,7 @@ docker run --rm -it \
 ## AI Use
 Some code was AI generated, notably:
 - Visualisations
-- Pandas vs Polars benchmark test
+- Refactor from Pandas to Polars
 - Pretty terminal outputs
 - Full docstrings
 

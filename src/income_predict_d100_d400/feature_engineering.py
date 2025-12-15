@@ -1,63 +1,133 @@
-from typing import Optional
+from typing import Any, List, Optional
 
-import numpy as np
+import polars as pl
 from lightgbm import LGBMClassifier
-from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import train_test_split
-from sklearn.utils.validation import check_array, check_is_fitted
+from sklearn.utils.validation import check_is_fitted
 
 
-class SimpleStandardScaler(OneToOneFeatureMixin, BaseEstimator, TransformerMixin):
+class SimpleStandardScaler(BaseEstimator, TransformerMixin):
     """
-    A simplified re-implementation of sklearn's StandardScaler.
-    Standardizes features by removing the mean and scaling to unit variance.
+    A simple StandardScaler that supports Polars DataFrames natively.
     """
 
-    def __init__(self):
-        self.mean_ = None
-        self.scale_ = None
+    def __init__(self) -> None:
+        self.means_: Optional[List[float]] = None
+        self.stds_: Optional[List[float]] = None
+        self.feature_names_in_: Optional[List[str]] = None
 
-    def fit(
-        self, X: np.ndarray, y: Optional[np.ndarray] = None
-    ) -> "SimpleStandardScaler":
+    def fit(self, X: pl.DataFrame, y: Any = None) -> "SimpleStandardScaler":
         """
         Compute the mean and std to be used for later scaling.
 
         Parameters:
-            X: The data used to compute the mean and standard deviation.
-            y: Ignored.
+            X: The input data (Polars DataFrame).
+            y: Ignored, exists for compatibility.
 
         Returns:
             self: The fitted scaler.
         """
-        X = check_array(X)
-        self.n_features_in_ = X.shape[1]
-        self.mean_ = np.mean(X, axis=0)
-        self.scale_ = np.std(X, axis=0)
+        # Convert to pandas for simple calculation (method is on the Polars object)
+        X_pd = X.to_pandas()
 
-        self.scale_[self.scale_ == 0] = 1.0
+        self.feature_names_in_ = X_pd.columns.tolist()
+        self.means_ = X_pd.mean().tolist()
+        self.stds_ = X_pd.std().tolist()
+
         return self
 
-    def transform(self, X: np.ndarray) -> np.ndarray:
+    def transform(self, X: pl.DataFrame) -> pl.DataFrame:
         """
         Perform standardization by centering and scaling.
 
         Parameters:
-            X: The data to transform.
+            X: The input data to transform (Polars DataFrame).
 
         Returns:
-            The transformed data array.
+            The transformed data as a Polars DataFrame.
         """
-        check_is_fitted(self, ["mean_", "scale_"])
-        X = check_array(X)
-        return (X - self.mean_) / self.scale_
+        check_is_fitted(self, ["means_", "stds_"])
+
+        assert self.feature_names_in_ is not None
+        assert self.means_ is not None
+        assert self.stds_ is not None
+
+        # Convert to pandas for simple math broadcasting
+        X_pd = X.to_pandas()
+        X_copy = X_pd.copy()
+
+        for i, col in enumerate(self.feature_names_in_):
+            X_copy[col] = (X_copy[col] - self.means_[i]) / self.stds_[i]
+
+        return pl.from_pandas(X_copy)
+
+    def get_feature_names_out(
+        self, input_features: Optional[List[str]] = None
+    ) -> List[str]:
+        """
+        Get output feature names for transformation.
+
+        Parameters:
+            input_features: Ignored, exists for compatibility.
+
+        Returns:
+            List of feature names.
+        """
+        check_is_fitted(self, ["feature_names_in_"])
+        assert self.feature_names_in_ is not None
+        return self.feature_names_in_
 
 
 class LGBMClassifierWithEarlyStopping(LGBMClassifier):
-    """LGBM wrapper that handles early stopping with an internal validation split."""
+    """
+    LGBMClassifier wrapper that automatically creates a validation set
+    from the training data to enable early stopping.
+    """
 
-    def fit(self, X, y, **kwargs):
+    def __init__(
+        self,
+        early_stopping_round: int = 10,
+        test_size: float = 0.1,
+        random_state: int = 42,
+        **kwargs: Any,
+    ) -> None:
+        self.early_stopping_round = early_stopping_round
+        self.test_size = test_size
+        self.random_state = random_state
+        super().__init__(**kwargs)
+
+    def fit(
+        self, X: pl.DataFrame, y: Any, **kwargs: Any
+    ) -> "LGBMClassifierWithEarlyStopping":
+        """
+        Fit the model with automatic internal validation split.
+
+        Parameters:
+            X: Feature matrix (Polars DataFrame).
+            y: Target vector.
+            **kwargs: Additional arguments passed to fit (e.g. sample_weight).
+
+        Returns:
+            self: The fitted model.
+        """
+        # Convert to pandas to bypass sklearn/lightgbm compatibility issues
+        X_pd = X.to_pandas()
+
         X_train, X_val, y_train, y_val = train_test_split(
-            X, y, test_size=0.15, random_state=42, stratify=y
+            X_pd,
+            y,
+            test_size=self.test_size,
+            random_state=self.random_state,
+            stratify=y,
         )
-        return super().fit(X_train, y_train, eval_set=[(X_val, y_val)], **kwargs)
+
+        super().fit(
+            X_train,
+            y_train,
+            eval_set=[(X_val, y_val)],
+            eval_metric="binary_logloss",
+            **kwargs,
+        )
+
+        return self

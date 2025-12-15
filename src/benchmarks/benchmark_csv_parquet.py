@@ -6,7 +6,7 @@ Result:
 While Parquet is significantly faster than CSV relativley speaking (around 2x speedup),
 the absolute time difference is small for this dataset size. Crucially, Parquet files are
 typically much smaller on disk (approx. 10x smaller for this dataset). Given these results,
-Parquet is the recommended format for performance and storage efficiency.
+I selected Parquet files for this project.
 """
 
 import statistics
@@ -20,7 +20,6 @@ import pandas as pd
 from income_predict_d100_d400.cleaning import full_clean
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
-# Configuration
 NUM_ITERATIONS: int = 10
 DATA_FILE_PATH: Path = DATA_DIR / "census_income.parquet"
 
@@ -41,7 +40,7 @@ def setup_files() -> Tuple[Path, Path, int, int]:
     if not DATA_FILE_PATH.exists():
         print(f"ERROR: Source file not found at {DATA_FILE_PATH}")
         print(
-            "Please run 'src/income_predict_d100_d400/training_pipeline.py' "
+            "Please run 'src/income_predict_d100_d400/pipeline.py' "
             "first to generate the dataset."
         )
         sys.exit(1)
@@ -49,11 +48,9 @@ def setup_files() -> Tuple[Path, Path, int, int]:
     print(f"Source data found: {DATA_FILE_PATH}")
     df_raw = pd.read_parquet(DATA_FILE_PATH)
 
-    # Define temporary filenames
     source_csv = Path("temp_csv.csv")
     source_parquet = Path("temp_parquet.parquet")
 
-    # Create source files for the benchmark
     print(f"Creating {source_csv}...")
     df_raw.to_csv(source_csv, index=False)
     csv_size = source_csv.stat().st_size
@@ -74,22 +71,16 @@ def run_benchmark_cycle(
     """Runs a single load-clean-save cycle and returns the time taken."""
     start_time = time.perf_counter()
 
-    # Load
     if format_type == "csv":
-        # Note: CSV read requires specifying all data types for optimal speed/memory,
-        # but for a fair comparison against Parquet's automatic typing, we leave it out here.
         df = pd.read_csv(source_file)
     else:
         df = pd.read_parquet(source_file)
 
-    # Clean
     df = full_clean(df)
 
-    # Save
     if format_type == "csv":
         df.to_csv(output_file, index=False)
     else:
-        # Parquet compression (default is 'snappy' in pandas) is key to its size advantage
         df.to_parquet(output_file, index=False)
 
     return time.perf_counter() - start_time
@@ -109,16 +100,13 @@ def main() -> None:
         for i in range(NUM_ITERATIONS):
             print(f"Iteration {i+1}/{NUM_ITERATIONS}...")
 
-            # Benchmark CSV
             t_csv = run_benchmark_cycle(source_csv, output_csv, "csv")
             csv_times.append(t_csv)
 
-            # Benchmark Parquet
             t_pq = run_benchmark_cycle(source_parquet, output_parquet, "parquet")
             parquet_times.append(t_pq)
 
     finally:
-        # cleanup in finally block to ensure files are removed even if error occurs
         files_to_delete = [source_csv, source_parquet, output_csv, output_parquet]
         for file_path in files_to_delete:
             if file_path.exists():
@@ -127,7 +115,6 @@ def main() -> None:
                 except Exception as e:
                     print(f"Failed to delete {file_path}: {e}")
 
-    # --- Results ---
     avg_csv = statistics.mean(csv_times)
     avg_pq = statistics.mean(parquet_times)
 

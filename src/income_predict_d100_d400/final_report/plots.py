@@ -6,6 +6,7 @@ import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import polars as pl
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -13,7 +14,7 @@ from matplotlib.patches import Patch
 
 
 def binary_column_issue(
-    df: pd.DataFrame,
+    df: pl.DataFrame,
     column_name: str,
     expected_values: Optional[List[str]] = None,
 ) -> Optional[Tuple[Figure, Axes]]:
@@ -23,7 +24,7 @@ def binary_column_issue(
 
     Parameters:
     -----------
-    df : pandas.DataFrame
+    df : polars.DataFrame
         The DataFrame containing the column to analyze
     column_name : str
         The name of the column to analyze
@@ -38,12 +39,14 @@ def binary_column_issue(
         expected_values = ["<=50K", ">50K"]
 
     # Get value counts for the column
-    value_counts = df[column_name].value_counts().sort_values(ascending=False)
+    value_counts_df = df.group_by(column_name).len().sort("len", descending=True)
+    unique_values = value_counts_df[column_name].to_list()
+    counts = value_counts_df["len"].to_list()
 
     # Determine which values are correct vs incorrect
     colors = []
     labels = []
-    for value in value_counts.index:
+    for value in unique_values:
         if value in expected_values:
             colors.append("#2ecc71")  # Green for correct values
             labels.append("Correctly labeled")
@@ -54,12 +57,12 @@ def binary_column_issue(
     # Create the bar chart
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    x_pos = np.arange(len(value_counts))
-    bars = ax.bar(x_pos, value_counts.values, color=colors, alpha=0.8)
+    x_pos = np.arange(len(unique_values))
+    bars = ax.bar(x_pos, counts, color=colors, alpha=0.8)
 
     # Customize the plot
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(value_counts.index, rotation=45, ha="right")
+    ax.set_xticklabels(unique_values, rotation=45, ha="right")
     ax.set_xlabel("Unique Values", fontsize=12, fontweight="bold")
     ax.set_ylabel("Count", fontsize=12, fontweight="bold")
     ax.set_title(
@@ -71,10 +74,11 @@ def binary_column_issue(
     ax.grid(axis="y", alpha=0.3, linestyle="--")
 
     # Add value labels on top of bars
-    for i, (bar, count) in enumerate(zip(bars, value_counts.values)):
+    max_count = max(counts)
+    for i, (bar, count) in enumerate(zip(bars, counts)):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + max(value_counts) * 0.01,
+            bar.get_height() + max_count * 0.01,
             str(int(count)),
             ha="center",
             va="bottom",
@@ -179,7 +183,7 @@ def confusion_matrix() -> None:
     plt.tight_layout()
 
 
-def correlation_compare(df: pd.DataFrame) -> None:
+def correlation_compare(df: pl.DataFrame) -> None:
     """
     Plots strip plots for unique_id and age against the target to show pattern contrast.
     """
@@ -193,11 +197,20 @@ def correlation_compare(df: pd.DataFrame) -> None:
             print(f"Error: Column '{col}' not found in DataFrame!")
             return
 
+    # Convert to pandas for seaborn compatibility
+    df_pd = df.select(features + [target]).to_pandas()
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     # Left plot: unique_id (no pattern)
     sns.stripplot(
-        data=df, x=target, y="unique_id", jitter=0.45, alpha=0.05, legend=False, ax=ax1
+        data=df_pd,
+        x=target,
+        y="unique_id",
+        jitter=0.45,
+        alpha=0.05,
+        legend=False,
+        ax=ax1,
     )
     ax1.set_title("Unique ID (No Pattern)", fontsize=13, fontweight="bold")
     ax1.set_xlabel(target.replace("_", " ").title(), fontsize=11, fontweight="bold")
@@ -206,7 +219,7 @@ def correlation_compare(df: pd.DataFrame) -> None:
 
     # Right plot: age (clear pattern)
     sns.stripplot(
-        data=df, x=target, y="age", jitter=0.45, alpha=0.05, legend=False, ax=ax2
+        data=df_pd, x=target, y="age", jitter=0.45, alpha=0.05, legend=False, ax=ax2
     )
     ax2.set_title("Age (Clear Pattern)", fontsize=13, fontweight="bold")
     ax2.set_xlabel(target.replace("_", " ").title(), fontsize=11, fontweight="bold")
@@ -225,14 +238,14 @@ def correlation_compare(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def display_dataset(df: pd.DataFrame) -> None:
+def display_dataset(df: pl.DataFrame) -> None:
     """
     Creates a pretty table displaying dataset information including shape,
     data types, and unique values.
 
     Parameters:
     -----------
-    df : pandas.DataFrame
+    df : polars.DataFrame
         The DataFrame to analyze
 
     Returns:
@@ -241,9 +254,9 @@ def display_dataset(df: pd.DataFrame) -> None:
     """
     # Gather information
     info_data = {
-        "Column": df.columns.tolist(),
+        "Column": df.columns,
         "Data Type": [str(dtype) for dtype in df.dtypes],
-        "Unique Values": [df[col].nunique() for col in df.columns],
+        "Unique Values": [df[col].n_unique() for col in df.columns],
     }
 
     info_df = pd.DataFrame(info_data)
@@ -284,7 +297,7 @@ def display_dataset(df: pd.DataFrame) -> None:
                 cell.set_facecolor("white")
 
     # Add title with dataset shape
-    title_text = f"Dataset Information: {df.shape[0]:,} rows, {df.shape[1]} columns"
+    title_text = f"Dataset Information: {df.height:,} rows, {df.width} columns"
     plt.title(title_text, fontsize=14, fontweight="bold", pad=30, y=0.98)
 
     plt.tight_layout()
@@ -292,7 +305,7 @@ def display_dataset(df: pd.DataFrame) -> None:
 
 
 def distribution_variety(
-    df: pd.DataFrame,
+    df: pl.DataFrame,
 ) -> Optional[Tuple[Figure, Tuple[Axes, Axes]]]:
     """
     Visualizes the distribution comparison between two columns:
@@ -301,7 +314,7 @@ def distribution_variety(
 
     Parameters:
     -----------
-    df : pandas.DataFrame
+    df : polars.DataFrame
         The DataFrame containing 'age' and 'hours-per-week' columns
 
     Returns:
@@ -314,8 +327,11 @@ def distribution_variety(
         return None
 
     # Get the data for both columns, removing NaN values
-    age_data = pd.to_numeric(df["age"].dropna(), errors="coerce").dropna()
-    hours_data = pd.to_numeric(df["hours-per-week"].dropna(), errors="coerce").dropna()
+    # Convert to pandas Series to reuse the complex plotting logic below
+    age_data = df["age"].cast(pl.Float64, strict=False).drop_nulls().to_pandas()
+    hours_data = (
+        df["hours-per-week"].cast(pl.Float64, strict=False).drop_nulls().to_pandas()
+    )
 
     if len(age_data) == 0 or len(hours_data) == 0:
         print("No valid numeric data found in required columns!")
@@ -914,7 +930,7 @@ def model_comparison() -> None:
     plt.tight_layout()
 
 
-def occupation_correlation(df: pd.DataFrame) -> None:
+def occupation_correlation(df: pl.DataFrame) -> None:
     """
     Plots a 100% stacked bar chart for occupation vs high_income.
     Bars are ordered by the proportion with high_income=True (descending).
@@ -922,8 +938,12 @@ def occupation_correlation(df: pd.DataFrame) -> None:
     target = "high_income"
     feature = "occupation"
 
+    # Convert to pandas for easy cross-tabulation
+    # (recreating pd.crosstab logic manually in Polars for plotting is verbose)
+    pdf = df.select([feature, target]).to_pandas()
+
     # Create crosstab with proportions
-    crosstab = pd.crosstab(df[feature], df[target], normalize="index")
+    crosstab = pd.crosstab(pdf[feature], pdf[target], normalize="index")
 
     # Sort by the proportion with high_income=True (descending)
     if True in crosstab.columns:
@@ -944,24 +964,37 @@ def occupation_correlation(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def visualize_missing_data(df: pd.DataFrame) -> None:
+def visualize_missing_data(df: pl.DataFrame) -> None:
     """
     Visualizes data quality issues in a DataFrame by showing counts of NaN and '?' values
     for each column in a horizontal stacked bar chart.
 
     Parameters:
     -----------
-    df : pandas.DataFrame
+    df : polars.DataFrame
         The DataFrame to analyze for data quality issues
 
     Returns:
     --------
     fig, ax : matplotlib figure and axes objects
     """
-    nan_counts = df.isna().sum()
-    question_counts = pd.Series(0, index=df.columns)
-    for col in df.columns:
-        question_counts[col] = (df[col] == "?").sum()
+    # Calculate counts using Polars
+    # Null counts
+    null_counts_row = df.null_count().row(0)
+    cols = df.columns
+    nan_counts = pd.Series(null_counts_row, index=cols)
+
+    # Question mark counts (assuming string columns)
+    q_counts = []
+    for col, dtype in zip(cols, df.dtypes):
+        if dtype in (pl.String, pl.Categorical, pl.Object):
+            # Safe check for string equality
+            count = df.select((pl.col(col) == "?").sum()).item()
+            q_counts.append(count)
+        else:
+            q_counts.append(0)
+
+    question_counts = pd.Series(q_counts, index=cols)
 
     # Sort by total issues (ascending for horizontal bar chart)
     total_issues = nan_counts + question_counts

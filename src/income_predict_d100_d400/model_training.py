@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import joblib
 import numpy as np
-import pandas as pd
+import polars as pl
 from scipy.stats import loguniform, randint, uniform
 from sklearn.base import BaseEstimator
 from sklearn.compose import ColumnTransformer
@@ -55,13 +55,11 @@ def set_random_seeds(seed: int = RANDOM_SEED) -> None:
     """
     random.seed(seed)
     np.random.seed(seed)
-    # Note: For full LGBM reproducibility, set environment variable
-    # PYTHONHASHSEED=0 before running the script
 
 
 def split_data_with_id_hash(
-    data: pd.DataFrame, test_ratio: float, id_column: str
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    data: pl.DataFrame, test_ratio: float, id_column: str
+) -> Tuple[pl.DataFrame, pl.DataFrame]:
     """
     Split data based on a hash of an identifier column.
 
@@ -80,9 +78,9 @@ def split_data_with_id_hash(
             < test_ratio * 2**32
         )
 
-    ids = data[id_column]
-    in_test_set = ids.apply(test_set_check)
-    return data.loc[~in_test_set], data.loc[in_test_set]
+    in_test_set = data[id_column].map_elements(test_set_check, return_dtype=pl.Boolean)
+
+    return data.filter(~in_test_set), data.filter(in_test_set)
 
 
 def run_split() -> None:
@@ -93,23 +91,22 @@ def run_split() -> None:
     and saves 'train_split.parquet' and 'test_split.parquet'.
     """
     parquet_path = DATA_DIR / "cleaned_census_income.parquet"
-    df = pd.read_parquet(parquet_path)
+    df = pl.read_parquet(parquet_path)
 
     train, test = split_data_with_id_hash(df, 0.2, "unique_id")
+    train.write_parquet(DATA_DIR / "train_split.parquet")
+    test.write_parquet(DATA_DIR / "test_split.parquet")
 
-    train.to_parquet(DATA_DIR / "train_split.parquet", index=False)
-    test.to_parquet(DATA_DIR / "test_split.parquet", index=False)
 
-
-def load_split() -> Tuple[pd.DataFrame, pd.DataFrame]:
+def load_split() -> Tuple[pl.DataFrame, pl.DataFrame]:
     """
     Load train/test split from parquet.
 
     Returns:
         A tuple containing the train and test DataFrames.
     """
-    train = pd.read_parquet(DATA_DIR / "train_split.parquet")
-    test = pd.read_parquet(DATA_DIR / "test_split.parquet")
+    train = pl.read_parquet(DATA_DIR / "train_split.parquet")
+    test = pl.read_parquet(DATA_DIR / "test_split.parquet")
     return train, test
 
 
@@ -129,7 +126,7 @@ def create_preprocessor(
     numeric_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", SimpleStandardScaler()),  # My custom transformer
+            ("scaler", SimpleStandardScaler()),
         ]
     )
     categorical_transformer = Pipeline(
@@ -144,7 +141,7 @@ def create_preprocessor(
             ("cat", categorical_transformer, categorical_features),
         ]
     )
-    preprocessor.set_output(transform="pandas")
+    preprocessor.set_output(transform="polars")
 
     return preprocessor
 
@@ -153,10 +150,10 @@ def train_and_tune_model(
     model_name: str,
     pipeline: Pipeline,
     param_dist: Dict[str, Any],
-    train_X: pd.DataFrame,
-    train_y: pd.Series,
-    test_X: pd.DataFrame,
-    test_y: pd.Series,
+    train_X: pl.DataFrame,
+    train_y: pl.Series,
+    test_X: pl.DataFrame,
+    test_y: pl.Series,
     n_iter: int = 10,
 ) -> BaseEstimator:
     """
@@ -208,10 +205,10 @@ def execute_model_pipeline(
     classifier: BaseEstimator,
     numeric_features: List[str],
     param_dist: Dict[str, Any],
-    train_X: pd.DataFrame,
-    train_y: pd.Series,
-    test_X: pd.DataFrame,
-    test_y: pd.Series,
+    train_X: pl.DataFrame,
+    train_y: pl.Series,
+    test_X: pl.DataFrame,
+    test_y: pl.Series,
     n_iter: int,
 ) -> BaseEstimator:
     """
@@ -263,19 +260,20 @@ def run_training() -> None:
 
     train, test = load_split()
     train_y = train[TARGET]
-    train_X = train.drop(columns=[TARGET, "unique_id"])
+    train_X = train.drop([TARGET, "unique_id"])
+
     test_y = test[TARGET]
-    test_X = test.drop(columns=[TARGET, "unique_id"])
+    test_X = test.drop([TARGET, "unique_id"])
 
     best_glm_model = execute_model_pipeline(
         model_name="GLM",
         classifier=SGDClassifier(
-            loss="log_loss", max_iter=1000, random_state=RANDOM_SEED
+            loss="log_loss", max_iter=500, random_state=RANDOM_SEED
         ),
         numeric_features=NUMERIC_FEATURES_GLM,
         param_dist={
             "classifier__l1_ratio": uniform(0, 1),
-            "classifier__alpha": loguniform(1e-4, 1e-1),
+            "classifier__alpha": loguniform(0.0001, 0.1),
         },
         train_X=train_X,
         train_y=train_y,
@@ -286,17 +284,18 @@ def run_training() -> None:
 
     best_lgbm_model = execute_model_pipeline(
         model_name="LGBM",
-        classifier=LGBMClassifierWithEarlyStopping(  # My custom classifier
+        classifier=LGBMClassifierWithEarlyStopping(
             objective="binary",
             random_state=RANDOM_SEED,
             verbose=-1,
             n_estimators=1000,
-            early_stopping_round=5,
+            early_stopping_round=4,
+            n_jobs=1,
         ),
         numeric_features=NUMERIC_FEATURES,
         param_dist={
             "classifier__learning_rate": loguniform(0.01, 0.2),
-            "classifier__num_leaves": randint(10, 60),
+            "classifier__num_leaves": randint(10, 50),
             "classifier__min_child_weight": loguniform(0.0001, 0.002),
         },
         train_X=train_X,
@@ -308,10 +307,10 @@ def run_training() -> None:
 
     joblib.dump(best_glm_model, DATA_DIR / "glm_model.joblib")
     joblib.dump(best_lgbm_model, DATA_DIR / "lgbm_model.joblib")
-    train_X.to_parquet(DATA_DIR / "train_features.parquet", index=False)
+    train_X.write_parquet(DATA_DIR / "train_features.parquet")
 
 
-def load_training_outputs() -> Dict[str, Union[BaseEstimator, pd.DataFrame]]:
+def load_training_outputs() -> Dict[str, Union[BaseEstimator, pl.DataFrame]]:
     """
     Load trained models and data for evaluation.
 
@@ -322,6 +321,6 @@ def load_training_outputs() -> Dict[str, Union[BaseEstimator, pd.DataFrame]]:
     return {
         "glm_model": joblib.load(DATA_DIR / "glm_model.joblib"),
         "lgbm_model": joblib.load(DATA_DIR / "lgbm_model.joblib"),
-        "train_features": pd.read_parquet(DATA_DIR / "train_features.parquet"),
-        "test": pd.read_parquet(DATA_DIR / "test_split.parquet"),
+        "train_features": pl.read_parquet(DATA_DIR / "train_features.parquet"),
+        "test": pl.read_parquet(DATA_DIR / "test_split.parquet"),
     }

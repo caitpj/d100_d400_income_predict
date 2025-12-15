@@ -1,14 +1,20 @@
+from typing import Union
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import polars as pl
 import seaborn as sns
 
 
-def plot_distributions(df: pd.DataFrame) -> None:
+def plot_distributions(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
     """
     Plots histograms for numeric columns and bar charts for boolean/string columns.
     Displays plots inline.
     """
+    if isinstance(df, pl.DataFrame):
+        df = df.to_pandas()
+
     numeric_cols = df.select_dtypes(include=["number"]).columns
     non_binary_numeric = [col for col in numeric_cols if df[col].nunique() > 2]
 
@@ -34,11 +40,14 @@ def plot_distributions(df: pd.DataFrame) -> None:
             plt.show()
 
 
-def plot_numeric_boxplots(df: pd.DataFrame) -> None:
+def plot_numeric_boxplots(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
     """
     Visualizes numeric columns using boxplots to identify outliers visually.
     Displays plots inline.
     """
+    if isinstance(df, pl.DataFrame):
+        df = df.to_pandas()
+
     numeric_cols = df.select_dtypes(include=[np.number]).columns
 
     if len(numeric_cols) == 0:
@@ -63,10 +72,17 @@ def plot_numeric_boxplots(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def plot_target_distribution(df: pd.DataFrame, target: str = "income") -> None:
+def plot_target_distribution(
+    df: Union[pd.DataFrame, pl.DataFrame], target: str = "income"
+) -> None:
     """
     Plots the distribution of the target variable from the summary dataframe.
     """
+    if isinstance(df, pl.DataFrame):
+        df = df.to_pandas()
+        if target in df.columns and "Count" in df.columns and df.index.name != target:
+            df = df.set_index(target)
+
     plt.figure(figsize=(10, 6))
     sns.barplot(x=df.index.astype(str), y=df["Count"])
     plt.title(f"Distribution of {target}", fontsize=16)
@@ -78,11 +94,19 @@ def plot_target_distribution(df: pd.DataFrame, target: str = "income") -> None:
 
 
 def plot_feature_correlations(
-    correlations: pd.Series, target: str = "income", title_suffix: str = ""
+    correlations: Union[pd.Series, pd.DataFrame, pl.DataFrame],
+    target: str = "income",
+    title_suffix: str = "",
 ) -> None:
     """
     Plots a horizontal bar chart of feature correlations with the target variable.
     """
+    if isinstance(correlations, pl.DataFrame):
+        correlations = correlations.to_pandas().set_index("feature")["correlation"]
+    elif isinstance(correlations, pd.DataFrame):
+        if "feature" in correlations.columns and "correlation" in correlations.columns:
+            correlations = correlations.set_index("feature")["correlation"]
+
     correlations_sorted = correlations.sort_values()
 
     plt.figure(figsize=(10, max(6, len(correlations_sorted) * 0.3)))
@@ -108,10 +132,13 @@ def plot_feature_correlations(
     plt.show()
 
 
-def plot_numeric_strip(df: pd.DataFrame, target: str) -> None:
+def plot_numeric_strip(df: Union[pd.DataFrame, pl.DataFrame], target: str) -> None:
     """
     Plots strip plots for all numeric features in the DataFrame against the target.
     """
+    if isinstance(df, pl.DataFrame):
+        df = df.to_pandas()
+
     numeric_features = df.select_dtypes(include=[np.number]).columns.tolist()
     if target in numeric_features:
         numeric_features.remove(target)
@@ -134,10 +161,13 @@ def plot_numeric_strip(df: pd.DataFrame, target: str) -> None:
         plt.show()
 
 
-def plot_categorical_stack(df: pd.DataFrame, target: str) -> None:
+def plot_categorical_stack(df: Union[pd.DataFrame, pl.DataFrame], target: str) -> None:
     """
     Plots 100% stacked bar charts for categorical features.
     """
+    if isinstance(df, pl.DataFrame):
+        df = df.to_pandas()
+
     cat_features = df.select_dtypes(include=["object", "category"]).columns.tolist()
     if target in cat_features:
         cat_features.remove(target)

@@ -1,8 +1,9 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import polars as pl
 import seaborn as sns
 from sklearn.inspection import partial_dependence
 from sklearn.metrics import confusion_matrix
@@ -27,7 +28,7 @@ def _save_plot(name: Optional[str] = None) -> None:
 def plot_partial_dependence(
     glm_model: Any,
     lgbm_model: Any,
-    X: pd.DataFrame,
+    X: Union[pl.DataFrame, pd.DataFrame],
     top_features: List[str],
 ) -> None:
     """
@@ -39,10 +40,13 @@ def plot_partial_dependence(
         X: The dataset used for computing partial dependence.
         top_features: List of feature names to plot.
     """
-    X_plot = X.copy()
-    int_cols = X_plot.select_dtypes(
-        include=["int", "int32", "int64", "integer"]
-    ).columns
+    # Convert to pandas to avoid sklearn partial_dependence indexing issues with Polars
+    if hasattr(X, "to_pandas"):
+        X_plot = X.to_pandas()
+    else:
+        X_plot = X.copy()
+
+    int_cols = X_plot.select_dtypes(include=["int", "integer"]).columns
     X_plot[int_cols] = X_plot[int_cols].astype(float)
 
     n_features = len(top_features)
@@ -53,12 +57,12 @@ def plot_partial_dependence(
 
     for i, feature in enumerate(top_features):
         ax = axes[i]
+
         is_categorical = (
             X_plot[feature].dtype == "object"
             or str(X_plot[feature].dtype) == "category"
         )
 
-        # Compute partial dependence for LGBM
         lgbm_pd = partial_dependence(
             lgbm_model,
             X_plot,
@@ -69,7 +73,6 @@ def plot_partial_dependence(
         lgbm_grid = lgbm_pd["grid_values"][0]
         lgbm_avg = lgbm_pd["average"][0]
 
-        # Compute partial dependence for GLM
         glm_pd = partial_dependence(
             glm_model,
             X_plot,
@@ -81,7 +84,7 @@ def plot_partial_dependence(
         glm_avg = glm_pd["average"][0]
 
         if is_categorical:
-            # For categorical features, use bar plot with offset
+            # For categorical features, bar plot with offset
             x_positions = np.arange(len(lgbm_grid))
             width = 0.35
 
@@ -105,7 +108,7 @@ def plot_partial_dependence(
             ax.set_xticks(x_positions)
             ax.set_xticklabels(lgbm_grid, rotation=45, ha="right")
         else:
-            # For numeric features, use line plot
+            # For numeric features, line plot
             ax.plot(lgbm_grid, lgbm_avg, color="blue", label="LGBM", linewidth=2)
             ax.plot(glm_grid, glm_avg, color="orange", label="GLM", linewidth=2)
 
