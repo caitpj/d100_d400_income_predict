@@ -33,6 +33,7 @@ def plot_partial_dependence(
 ) -> None:
     """
     Plot partial dependence for top features with both GLM and LGBM models.
+    Saves a separate plot for each feature.
 
     Parameters:
         glm_model: The fitted GLM model.
@@ -49,14 +50,9 @@ def plot_partial_dependence(
     int_cols = X_plot.select_dtypes(include=["int", "integer"]).columns
     X_plot[int_cols] = X_plot[int_cols].astype(float)
 
-    n_features = len(top_features)
-    _, axes = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
-
-    if n_features == 1:
-        axes = [axes]
-
-    for i, feature in enumerate(top_features):
-        ax = axes[i]
+    for feature in top_features:
+        # Create a new figure for each feature
+        _, ax = plt.subplots(figsize=(6, 4))
 
         is_categorical = (
             X_plot[feature].dtype == "object"
@@ -118,9 +114,8 @@ def plot_partial_dependence(
         ax.set_title(f"Partial Dependence: {feature}")
         ax.grid(True, alpha=0.3)
 
-    plt.suptitle("Partial Dependence Plots - Top Features (GLM vs LGBM)", y=1.02)
-    plt.tight_layout()
-    _save_plot(name="feature_dependence_plot")
+        plt.tight_layout()
+        _save_plot(name=f"partial_dependence_{feature}")
 
 
 def plot_confusion_matrices(

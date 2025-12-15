@@ -80,6 +80,7 @@ cd d100_d400_income_predict
 This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key data files and visualisations. It should take a minuite or so to run.
 ```bash
 docker run --rm --shm-size=2g \
+-v "$(git rev-parse --show-toplevel):/app" \
 -e PYTHONUNBUFFERED=1 \
 -e OMP_NUM_THREADS=1 \
 conda-uciml python src/income_predict_d100_d400/pipeline.py

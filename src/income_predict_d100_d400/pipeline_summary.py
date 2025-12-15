@@ -12,7 +12,6 @@ EXPECTED_ARTIFACTS: Dict[str, Path] = {
     "LGBM Model": DATA_DIR / "lgbm_model.joblib",
     "Train Features": DATA_DIR / "train_features.parquet",
     "Confusion Matrix Plot": PLOTS_DIR / "classification_plot.png",
-    "Partial Dependence Plot": PLOTS_DIR / "feature_dependence_plot.png",
 }
 
 
@@ -44,12 +43,25 @@ def check_files(artifacts: Dict[str, Path]) -> Dict[str, Tuple[bool, str]]:
 def print_pipeline_summary() -> None:
     """
     Orchestrates the checking of artifacts and prints a formatted summary table.
+    Includes a dynamic check for Partial Dependence plots (expects 5 files).
     """
     results = check_files(EXPECTED_ARTIFACTS)
+    pdp_files = list(PLOTS_DIR.glob("partial_dependence_*.png"))
+    pdp_count = len(pdp_files)
+    pdp_exists = pdp_count >= 5
 
-    print("\n" + "=" * 50)
+    try:
+        pdp_display_path = str(
+            PLOTS_DIR.relative_to(Path.cwd()) / "partial_dependence_*.png"
+        )
+    except ValueError:
+        pdp_display_path = str(PLOTS_DIR / "partial_dependence_*.png")
+
+    results["Partial Dependence Plots"] = (pdp_exists, pdp_display_path)
+
+    print("\n" + "=" * 80)
     print("PIPELINE EXECUTION SUMMARY")
-    print("=" * 50)
+    print("=" * 80)
     print(f"{'Status':<7} | {'Description':<25} | {'Location'}")
     print("-" * 80)
 

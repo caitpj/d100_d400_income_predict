@@ -126,8 +126,8 @@ def create_preprocessor(
             ("imputer", SimpleImputer(strategy="median")),
             (
                 "log_transform",
-                SignedLogTransformer(),
-            ),  # My custom class, used to fix skew/outliers
+                SignedLogTransformer(),  # My custom class, used to fix skew/outliers
+            ),
             ("scaler", StandardScaler()),
         ]
     )
@@ -143,7 +143,6 @@ def create_preprocessor(
             ("cat", categorical_transformer, categorical_features),
         ]
     )
-    preprocessor.set_output(transform="polars")
 
     return preprocessor
 
