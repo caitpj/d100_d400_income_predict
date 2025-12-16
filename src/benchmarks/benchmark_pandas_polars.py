@@ -111,7 +111,7 @@ def polars_load_and_clean() -> pl.DataFrame:
         ]
     )
     df = df.drop([c for c in COLUMNS_TO_DROP if c in df.columns])
-    df = df.with_columns(pl.col("education").replace(EDUCATION_ORDER))
+    df = df.with_columns(pl.col("education").replace_strict(EDUCATION_ORDER))
     df = df.with_columns(
         (pl.col("capital_gain") - pl.col("capital_loss")).alias("capital_net")
     )

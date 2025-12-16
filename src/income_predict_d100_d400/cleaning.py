@@ -54,7 +54,7 @@ def encode_education(df: pl.DataFrame) -> pl.DataFrame:
         The DataFrame with the 'education' column mapped to integers.
     """
     return df.with_columns(
-        pl.col("education").replace(EDUCATION_ORDER, default=None).cast(pl.Int64)
+        pl.col("education").replace_strict(EDUCATION_ORDER, default=None).cast(pl.Int64)
     )
 
 

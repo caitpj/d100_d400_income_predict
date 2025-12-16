@@ -103,7 +103,7 @@ If you want to contribute or modify the code, you can run a development shell in
 1. Enter the Development Shell This command mounts your local current directory to the container. Any changes you make to the code in your local editor will be instantly visible inside the container.
 ```bash
 docker run --rm -it \
-  -v "$(pwd):/app" \
+  -v "$(git rev-parse --show-toplevel):/app" \
   conda-uciml \
   /bin/bash
 ```
