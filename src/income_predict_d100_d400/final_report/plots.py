@@ -1009,8 +1009,8 @@ def categorical_pattern_contrast(df: pl.DataFrame) -> None:
     fig.text(
         0.5,
         -0.02,
-        "Occupation predicts income via a continuous hierarchy • Marital status "
-        "shows a sharp divide based on spouse presence",
+        "Occupation predicts income via a continuous hierarchy • Marital "
+        "status shows a sharp divide based on spouse presence",
         ha="center",
         fontsize=10,
         style="italic",

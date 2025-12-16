@@ -126,13 +126,13 @@ def binarize_marital_status(df: pl.DataFrame) -> pl.DataFrame:
         df: The DataFrame containing the 'marital_status' column.
 
     Returns:
-        The DataFrame with 'is_married_healthy' column added and 'marital_status' removed.
+        The DataFrame with 'is_married_healthy' column added.
     """
     return df.with_columns(
         pl.col("marital_status")
         .is_in(["Married-civ-spouse", "Married-AF-spouse"])
         .alias("is_married_healthy")
-    ).drop("marital_status")
+    )
 
 
 def add_interaction_features(df: pl.DataFrame) -> pl.DataFrame:
@@ -247,7 +247,7 @@ def full_clean(df: pl.DataFrame) -> pl.DataFrame:
     df = combine_married(df)
     df = binarize_race(df)
     df = binarize_sex(df)
-    df = binarize_marital_status(df)  # Added new step
+    df = binarize_marital_status(df)
     df = add_interaction_features(df)
 
     return df
