@@ -89,6 +89,7 @@ conda-uciml python src/income_predict_d100_d400/pipeline.py
 ### 4. Run Notebooks
 ```bash
 docker run --rm -it \
+-v "$(git rev-parse --show-toplevel):/app" \
 -p 8888:8888 conda-uciml \
 jupyter notebook --ip=0.0.0.0 \
 --port=8888 --no-browser --allow-root
