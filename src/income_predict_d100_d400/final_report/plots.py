@@ -13,92 +13,6 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 
 
-def binary_column_issue(
-    df: pl.DataFrame,
-    column_name: str,
-    expected_values: Optional[List[str]] = None,
-) -> Optional[Tuple[Figure, Axes]]:
-    """
-    Visualizes data quality issues in a binary column by showing counts of each unique value.
-    Values that don't match the expected binary values are highlighted in red.
-
-    Parameters:
-    -----------
-    df : polars.DataFrame
-        The DataFrame containing the column to analyze
-    column_name : str
-        The name of the column to analyze
-    expected_values : list, optional
-        List of expected valid values (default: ['<=50K', '>50K'])
-
-    Returns:
-    --------
-    fig, ax : matplotlib figure and axes objects
-    """
-    if expected_values is None:
-        expected_values = ["<=50K", ">50K"]
-
-    # Get value counts for the column
-    value_counts_df = df.group_by(column_name).len().sort("len", descending=True)
-    unique_values = value_counts_df[column_name].to_list()
-    counts = value_counts_df["len"].to_list()
-
-    # Determine which values are correct vs incorrect
-    colors = []
-    labels = []
-    for value in unique_values:
-        if value in expected_values:
-            colors.append("#2ecc71")  # Green for correct values
-            labels.append("Correctly labeled")
-        else:
-            colors.append("#e74c3c")  # Red for incorrect values
-            labels.append("Not correctly labeled")
-
-    # Create the bar chart
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    x_pos = np.arange(len(unique_values))
-    bars = ax.bar(x_pos, counts, color=colors, alpha=0.8)
-
-    # Customize the plot
-    ax.set_xticks(x_pos)
-    ax.set_xticklabels(unique_values, rotation=45, ha="right")
-    ax.set_xlabel("Unique Values", fontsize=12, fontweight="bold")
-    ax.set_ylabel("Count", fontsize=12, fontweight="bold")
-    ax.set_title(
-        "Data Quality Issues: Target Variable Is Not Currently Binary",
-        fontsize=14,
-        fontweight="bold",
-        pad=20,
-    )
-    ax.grid(axis="y", alpha=0.3, linestyle="--")
-
-    # Add value labels on top of bars
-    max_count = max(counts)
-    for i, (bar, count) in enumerate(zip(bars, counts)):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + max_count * 0.01,
-            str(int(count)),
-            ha="center",
-            va="bottom",
-            fontweight="bold",
-            fontsize=10,
-        )
-
-    # Create custom legend
-    legend_elements = [
-        Patch(facecolor="#2ecc71", alpha=0.8, label="Correctly labeled"),
-        Patch(facecolor="#e74c3c", alpha=0.8, label="Not correctly labeled"),
-    ]
-    ax.legend(handles=legend_elements, loc="upper right", frameon=True, shadow=True)
-
-    plt.tight_layout()
-    plt.show()
-
-    return None
-
-
 def confusion_matrix() -> None:
     """Plot confusion matrices for tuned GLM and tuned LGBM models."""
     # Hardcoded confusion matrix values for tuned models
@@ -930,122 +844,465 @@ def model_comparison() -> None:
     plt.tight_layout()
 
 
-def occupation_correlation(df: pl.DataFrame) -> None:
+def categorical_pattern_contrast(df: pl.DataFrame) -> None:
     """
-    Plots a 100% stacked bar chart for occupation vs high_income.
-    Bars are ordered by the proportion with high_income=True (descending).
+    Contrasting two different TYPES of categorical patterns:
+    - Occupation: Gradual hierarchy (skill/education ladder)
+    - Marital Status: Binary split (married vs not married)
     """
     target = "high_income"
-    feature = "occupation"
 
-    # Convert to pandas for easy cross-tabulation
-    # (recreating pd.crosstab logic manually in Polars for plotting is verbose)
-    pdf = df.select([feature, target]).to_pandas()
+    fig, axes = plt.subplots(1, 2, figsize=(14, 7))
 
-    # Create crosstab with proportions
-    crosstab = pd.crosstab(pdf[feature], pdf[target], normalize="index")
+    fig.suptitle(
+        "Two Types of Categorical Patterns: Gradient vs Binary Split",
+        fontsize=14,
+        fontweight="bold",
+        y=1.02,
+    )
 
-    # Sort by the proportion with high_income=True (descending)
-    if True in crosstab.columns:
-        crosstab = crosstab.sort_values(by=True, ascending=False)
+    # --- Left panel: Occupation (GRADIENT pattern) ---
+    ax1 = axes[0]
+    pdf_occ = df.select(["occupation", target]).to_pandas()
+    crosstab_occ = pd.crosstab(
+        pdf_occ["occupation"], pdf_occ[target], normalize="index"
+    )
+    if True in crosstab_occ.columns:
+        crosstab_occ = crosstab_occ.sort_values(by=True, ascending=True)
 
-    # Create figure and plot on the same axes
-    fig, ax = plt.subplots(figsize=(12, 6))
-    crosstab.plot(kind="bar", stacked=True, ax=ax)
+    high_income_occ = (crosstab_occ[True] * 100).round(1)
 
-    ax.set_title(f"{feature} Distribution by {target}", fontsize=12)
-    ax.set_ylabel("Proportion")
-    ax.set_xlabel(feature)
-    ax.legend(title=target, bbox_to_anchor=(1.02, 1), loc="upper left")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-    ax.grid(axis="y", linestyle="--", alpha=0.3)
+    # Gradient color scheme - smooth transition showing hierarchy
+    n_occ = len(high_income_occ)
+
+    ax1.set_yticks(range(n_occ))
+    ax1.set_yticklabels(crosstab_occ.index, fontsize=9)
+    ax1.set_xlabel("% High Income", fontsize=10)
+    ax1.set_title(
+        "Occupation: A Skill & Education Ladder", fontsize=12, fontweight="bold"
+    )
+
+    # Add annotation explaining the pattern
+    ax1.text(
+        0.95,
+        0.12,
+        "Each step up the ladder\n≈ 3-5 pp income gain",
+        transform=ax1.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=9,
+        style="italic",
+        color="#37474F",
+        bbox=dict(
+            boxstyle="round,pad=0.4",
+            facecolor="#ECEFF1",
+            edgecolor="#90A4AE",
+            alpha=0.9,
+        ),
+    )
+
+    ax1.axvline(
+        x=high_income_occ.median(),
+        color="#546E7A",
+        linestyle="--",
+        linewidth=1.5,
+        alpha=0.7,
+    )
+    ax1.text(
+        high_income_occ.median() + 1,
+        n_occ - 1,
+        "median",
+        fontsize=8,
+        color="#546E7A",
+        va="center",
+    )
+
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax1.grid(axis="x", linestyle="--", alpha=0.3)
+
+    # --- Right panel: Marital Status (BINARY pattern) ---
+    ax2 = axes[1]
+
+    pdf_marital = df.select(["marital_status", target]).to_pandas()
+    crosstab_marital = pd.crosstab(
+        pdf_marital["marital_status"], pdf_marital[target], normalize="index"
+    )
+    if True in crosstab_marital.columns:
+        crosstab_marital = crosstab_marital.sort_values(by=True, ascending=True)
+
+    high_income_marital = (crosstab_marital[True] * 100).round(1)
+
+    # Binary color scheme - highlight the split
+    married_keywords = ["Married-civ-spouse", "Married-AF-spouse"]
+    colors_marital = []
+    for status in crosstab_marital.index:
+        if status in married_keywords:
+            colors_marital.append("#1565C0")  # Blue for married w/ spouse present
+        else:
+            colors_marital.append("#BBDEFB")  # Light blue for others
+
+    ax2.set_yticks(range(len(crosstab_marital)))
+    ax2.set_yticklabels(crosstab_marital.index, fontsize=9)
+    ax2.set_xlabel("% High Income", fontsize=10)
+    ax2.set_title(
+        "Marital Status: Spouse Present is What Matters", fontsize=12, fontweight="bold"
+    )
+
+    # Add dividing line and annotations
+    # Find the boundary between married (spouse present) and others
+    married_indices = [
+        i for i, s in enumerate(crosstab_marital.index) if s in married_keywords
+    ]
+    if married_indices:
+        boundary = min(married_indices) - 0.5
+        ax2.axhline(y=boundary, color="#1565C0", linestyle="-", linewidth=2, alpha=0.7)
+
+        # Calculate averages for each group
+        married_avg = high_income_marital[
+            crosstab_marital.index.isin(married_keywords)
+        ].mean()
+        other_avg = high_income_marital[
+            ~crosstab_marital.index.isin(married_keywords)
+        ].mean()
+
+        ax2.text(
+            0.95,
+            0.88,
+            f"Spouse present: {married_avg:.0f}% avg",
+            transform=ax2.transAxes,
+            ha="right",
+            va="top",
+            fontsize=10,
+            fontweight="bold",
+            color="#1565C0",
+            bbox=dict(
+                boxstyle="round,pad=0.3", facecolor="#E3F2FD", edgecolor="#1565C0"
+            ),
+        )
+
+        ax2.text(
+            0.95,
+            0.08,
+            f"Others: {other_avg:.0f}% avg",
+            transform=ax2.transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
+            color="#64B5F6",
+            bbox=dict(
+                boxstyle="round,pad=0.3", facecolor="#E3F2FD", edgecolor="#64B5F6"
+            ),
+        )
+
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+    ax2.grid(axis="x", linestyle="--", alpha=0.3)
+
+    # Match x-axis scales
+    max_x = max(high_income_occ.max(), high_income_marital.max()) + 5
+    ax1.set_xlim(0, max_x)
+    ax2.set_xlim(0, max_x)
+
+    # Add bottom annotation explaining the contrast
+    fig.text(
+        0.5,
+        -0.02,
+        "Occupation predicts income via a continuous hierarchy • Marital status "
+        "shows a sharp divide based on spouse presence",
+        ha="center",
+        fontsize=10,
+        style="italic",
+        color="#616161",
+    )
 
     plt.tight_layout()
     plt.show()
 
 
-def visualize_missing_data(df: pl.DataFrame) -> None:
+def visualize_data_quality_issues(df: pl.DataFrame) -> None:
     """
-    Visualizes data quality issues in a DataFrame by showing counts of NaN and '?' values
-    for each column in a horizontal stacked bar chart.
+    Data quality visualization redesigned to tell a clear story:
+    1. Left panel: Overall health summary (the good news)
+    2. Right panel: Focus on columns needing attention (the work to do)
 
-    Parameters:
-    -----------
-    df : polars.DataFrame
-        The DataFrame to analyze for data quality issues
-
-    Returns:
-    --------
-    fig, ax : matplotlib figure and axes objects
+    Key insight: Target variable has the most critical issue.
     """
-    # Calculate counts using Polars
-    # Null counts
-    null_counts_row = df.null_count().row(0)
+    target_column = "income"
+    expected_target_values = ["<=50K", ">50K"]
+
     cols = df.columns
-    nan_counts = pd.Series(null_counts_row, index=cols)
+    total_rows = len(df)
 
-    # Question mark counts (assuming string columns)
-    q_counts = []
+    # --- 1. Calculate all issue types ---
+    null_counts_row = df.null_count().row(0)
+    nan_counts = {col: count for col, count in zip(cols, null_counts_row)}
+
+    question_counts = {}
+    whitespace_counts = {}
     for col, dtype in zip(cols, df.dtypes):
         if dtype in (pl.String, pl.Categorical, pl.Object):
-            # Safe check for string equality
-            count = df.select((pl.col(col) == "?").sum()).item()
-            q_counts.append(count)
+            question_counts[col] = df.select((pl.col(col) == "?").sum()).item()
+            ws_count = df.select(
+                (pl.col(col) != pl.col(col).str.strip_chars()).sum()
+            ).item()
+            whitespace_counts[col] = ws_count if ws_count else 0
         else:
-            q_counts.append(0)
+            question_counts[col] = 0
+            whitespace_counts[col] = 0
 
-    question_counts = pd.Series(q_counts, index=cols)
+    format_counts = {col: 0 for col in cols}
+    if target_column in cols:
+        target_values = df[target_column].to_list()
+        format_counts[target_column] = sum(
+            1
+            for v in target_values
+            if v is not None
+            and isinstance(v, str)
+            and v not in expected_target_values
+            and v.rstrip(".") in expected_target_values
+        )
 
-    # Sort by total issues (ascending for horizontal bar chart)
-    total_issues = nan_counts + question_counts
-    sorted_indices = total_issues.sort_values(ascending=True).index
-    nan_counts = nan_counts[sorted_indices]
-    question_counts = question_counts[sorted_indices]
+    # --- 2. Build issue summary ---
+    issue_data = []
+    for col in cols:
+        nan_val = nan_counts.get(col, 0)
+        q_val = question_counts.get(col, 0)
+        fmt_val = format_counts.get(col, 0)
+        ws_val = whitespace_counts.get(col, 0)
+        total_issues = nan_val + q_val + fmt_val + ws_val
 
-    fig, ax = plt.subplots(figsize=(10, max(6, len(nan_counts) * 0.4)))
+        if total_issues > 0:
+            issue_data.append(
+                {
+                    "column": col,
+                    "NaN": nan_val,
+                    "Placeholder '?'": q_val,
+                    "Trailing '.'": fmt_val,
+                    "Whitespace": ws_val,
+                    "total_issues": total_issues,
+                    "pct": total_issues / total_rows * 100,
+                    "is_target": col == target_column,
+                }
+            )
 
-    y_pos = np.arange(len(nan_counts))
+    # Sort: target LAST (at bottom, most prominent), then by severity descending
+    issue_data = sorted(issue_data, key=lambda x: (x["is_target"], x["pct"]))
 
-    ax.barh(y_pos, nan_counts, label="NaN", color="#e74c3c", alpha=0.8)
-    ax.barh(
-        y_pos, question_counts, left=nan_counts, label="'?'", color="#f39c12", alpha=0.8
+    # Overall stats
+    total_issues = sum(d["total_issues"] for d in issue_data)
+    total_cells = total_rows * len(cols)
+    clean_pct = (1 - total_issues / total_cells) * 100
+    cols_with_issues = len(issue_data)
+    cols_clean = len(cols) - cols_with_issues
+
+    # --- 3. Create figure with two panels ---
+    fig = plt.figure(figsize=(12, 5.5))
+    gs = fig.add_gridspec(1, 2, width_ratios=[1, 2], wspace=0.3)
+
+    # === LEFT PANEL: Overall Health ===
+    ax_left = fig.add_subplot(gs[0])
+
+    # Donut chart
+    sizes = [clean_pct, 100 - clean_pct]
+    colors_donut = ["#27ae60", "#e8e8e8"]
+    wedges, _ = ax_left.pie(
+        sizes,
+        colors=colors_donut,
+        startangle=90,
+        wedgeprops=dict(width=0.35, edgecolor="white", linewidth=2),
     )
 
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(nan_counts.index)
-    ax.set_xlabel("Count of Issues", fontsize=12, fontweight="bold")
-    ax.set_ylabel("Column Name", fontsize=12, fontweight="bold")
-    ax.set_title(
-        "Data Quality Issues: NaN and '?' Values by Column",
+    # Center text
+    ax_left.text(
+        0,
+        0.12,
+        f"{clean_pct:.0f}%",
+        ha="center",
+        va="center",
+        fontsize=32,
+        fontweight="bold",
+        color="#27ae60",
+    )
+    ax_left.text(
+        0,
+        -0.22,
+        "Clean",
+        ha="center",
+        va="center",
+        fontsize=13,
+        fontweight="bold",
+        color="#555555",
+    )
+
+    # Info box below donut - lowered
+    ax_left.text(
+        0,
+        -1.15,
+        f"{cols_clean} of {len(cols)} columns have no issues",
+        ha="center",
+        va="center",
+        fontsize=9,
+        fontstyle="italic",
+        color="#555555",
+        bbox=dict(
+            boxstyle="round,pad=0.4",
+            facecolor="#f8f9fa",
+            edgecolor="#dee2e6",
+            linewidth=1,
+        ),
+    )
+
+    ax_left.set_xlim(-1.5, 1.5)
+    ax_left.set_ylim(-1.5, 1.2)
+    ax_left.axis("off")
+    ax_left.set_title("Overall Data Health", fontsize=13, fontweight="bold", pad=10)
+
+    # === RIGHT PANEL: Issues to Address ===
+    ax_right = fig.add_subplot(gs[1])
+
+    columns = [d["column"] for d in issue_data]
+    y_pos = np.arange(len(columns))
+    bar_height = 0.6
+
+    # Distinct color palette - spread across spectrum
+    colors_issues = {
+        "NaN": "#db0284",  # Yellow
+        "Placeholder '?'": "#8e44ad",  # Purple
+        "Trailing '.'": "#d40000",  # Orange
+        "Whitespace": "#2980b9",  # Blue
+    }
+
+    # Plot stacked bars
+    left = [0.0] * len(issue_data)  # Initialize as float
+
+    for issue_type in ["NaN", "Placeholder '?'", "Trailing '.'", "Whitespace"]:
+        values = [d[issue_type] / total_rows * 100 for d in issue_data]
+        ax_right.barh(
+            y_pos,
+            values,
+            height=bar_height,
+            left=left,
+            color=colors_issues[issue_type],
+            edgecolor="white",
+            linewidth=0.5,
+            label=issue_type,
+        )
+        # Fix for E741: changed 'l' to 'left_val'
+        left = [left_val + v for left_val, v in zip(left, values)]
+
+    # Find target index
+    target_idx = next(i for i, d in enumerate(issue_data) if d["is_target"])
+
+    # Add percentage labels
+    for i, d in enumerate(issue_data):
+        pct = d["pct"]
+        if pct >= 1:
+            ax_right.text(
+                pct + 0.8,
+                i,
+                f"{int(round(pct))}%",
+                ha="left",
+                va="center",
+                fontsize=10,
+                fontweight="bold",
+                color="#333333",
+            )
+
+    # TARGET label
+    target_pct = issue_data[target_idx]["pct"]
+    ax_right.annotate(
+        "TARGET",
+        xy=(target_pct + 5, target_idx),
+        xytext=(target_pct + 12, target_idx),
+        fontsize=10,
+        fontweight="bold",
+        color="#856404",
+        va="center",
+        arrowprops=dict(arrowstyle="-", color="#856404", linewidth=1.5),
+        bbox=dict(
+            boxstyle="round,pad=0.3",
+            facecolor="#fff3cd",
+            edgecolor="#856404",
+            linewidth=1,
+        ),
+    )
+
+    # Explanatory text directly under TARGET label
+    ax_right.text(
+        target_pct + 12,
+        target_idx - 0.55,
+        "Target has 4 labels instead of 2\n"
+        "(e.g. '>50K' and '>50K.' treated as different)\n"
+        "Must fix before modelling",
+        ha="center",
+        va="top",
+        fontsize=9,
+        fontstyle="italic",
+        color="#555555",
+        bbox=dict(
+            boxstyle="round,pad=0.4",
+            facecolor="#f8f9fa",
+            edgecolor="#dee2e6",
+            linewidth=1,
+        ),
+    )
+
+    # Y-axis labels
+    ax_right.set_yticks(y_pos)
+    ax_right.set_yticklabels(columns, fontsize=11)
+
+    # Make target label bold
+    for i, label in enumerate(ax_right.get_yticklabels()):
+        if issue_data[i]["is_target"]:
+            label.set_fontweight("bold")
+
+    ax_right.set_xlim(0, max(d["pct"] for d in issue_data) + 28)
+    ax_right.xaxis.set_visible(False)
+
+    ax_right.spines["top"].set_visible(False)
+    ax_right.spines["right"].set_visible(False)
+    ax_right.spines["bottom"].set_visible(False)
+    ax_right.spines["left"].set_color("#333333")
+
+    ax_right.set_title(
+        "Four Columns with Issues", fontsize=13, fontweight="bold", pad=10
+    )
+
+    # Vertical legend at bottom left of bar chart
+    legend_items = [
+        ("Trailing '.'", colors_issues["Trailing '.'"]),
+        ("NaN", colors_issues["NaN"]),
+        ("Placeholder '?'", colors_issues["Placeholder '?'"]),
+        ("Whitespace", colors_issues["Whitespace"]),
+    ]
+
+    legend_x = 0.5
+    legend_y_start = 0.38
+    line_spacing = 0.09
+
+    for idx, (label, color) in enumerate(legend_items):
+        y_pos_legend = legend_y_start - idx * line_spacing
+        ax_right.text(
+            legend_x,
+            y_pos_legend,
+            label,
+            transform=ax_right.transAxes,
+            ha="left",
+            va="center",
+            fontsize=10,
+            fontweight="bold",
+            color=color,
+        )
+
+    # Main title
+    fig.suptitle(
+        "Data Quality Assessment: Mostly Clean, Four Fixes Required",
         fontsize=14,
         fontweight="bold",
-        pad=20,
+        y=1.02,
     )
-    ax.legend(loc="lower right", frameon=True, shadow=True)
-    ax.grid(axis="x", alpha=0.3, linestyle="--")
 
-    for i, (nan_val, q_val) in enumerate(zip(nan_counts, question_counts)):
-        if nan_val > 0:
-            ax.text(
-                nan_val / 2,
-                i,
-                str(int(nan_val)),
-                ha="center",
-                va="center",
-                fontweight="bold",
-                color="white",
-            )
-        if q_val > 0:
-            ax.text(
-                nan_val + q_val / 2,
-                i,
-                str(int(q_val)),
-                ha="center",
-                va="center",
-                fontweight="bold",
-                color="white",
-            )
-
-    plt.tight_layout()
-
+    plt.subplots_adjust(top=0.88, bottom=0.08, left=0.05, right=0.95)
     plt.show()
