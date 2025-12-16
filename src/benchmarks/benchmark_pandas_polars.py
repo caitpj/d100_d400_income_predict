@@ -37,7 +37,7 @@ COLUMN_RENAMING: Dict[str, str] = {
     "income": "income",
 }
 
-COLUMNS_TO_DROP: list[str] = ["fnlwgt", "education-num", "income", "marital_status"]
+COLUMNS_TO_DROP: list[str] = ["fnlwgt", "education-num", "income"]
 
 EDUCATION_ORDER: Dict[str, int] = {
     "Preschool": 1,
@@ -78,6 +78,13 @@ def pandas_load_and_clean() -> pd.DataFrame:
     df["is_white"] = df["race"] == "White"
     df["is_black"] = df["race"] == "Black"
     df = df.drop(columns=["race"])
+
+    # New logic for is_married_healthy
+    df["is_married_healthy"] = df["marital_status"].isin(
+        ["Married-civ-spouse", "Married-AF-spouse"]
+    )
+    df = df.drop(columns=["marital_status"])
+
     return df
 
 
@@ -116,6 +123,13 @@ def polars_load_and_clean() -> pl.DataFrame:
             (pl.col("race") == "Black").alias("is_black"),
         ]
     ).drop("race")
+
+    df = df.with_columns(
+        pl.col("marital_status")
+        .is_in(["Married-civ-spouse", "Married-AF-spouse"])
+        .alias("is_married_healthy")
+    ).drop("marital_status")
+
     return df
 
 

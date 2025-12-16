@@ -31,6 +31,7 @@ NUMERIC_FEATURES = [
     "is_white",
     "is_black",
     "is_female",
+    "is_married_healthy",
 ]
 
 # GLM gets interaction features. LGBM learns them automatically
