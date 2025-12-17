@@ -2,13 +2,9 @@
 
 ## Overview
 
-This repository provides a reproducible Docker environment pre-configured with everything needed to run the GLM and LGBM models for predicting high income basaed on the 1994 US census dataset.
+Can we predict who earns a high income using only demographic data? In short, yes, my models can achieve up to 87% accuracy. See `src/notebooks/final_report.ipynb` for detailed answer.
 
-The main analysis can be found at: `src/notebooks/final_report.ipynb`
-
-There is are other sub-analysis files, they are:
-- `src/tests/benchmark_pandas_polars.py` script that highlights the performance differences between Polars and Pandas on loading and cleaning this specific dataset.
-- `src/notebooks/eda_cleaning.ipynb` exploratory data analysis. Lots more charts and info on how and why certain decisions were made in building the models.
+This repo provides a reproducible environment for running GLM and LGBM models that predict high income (>$50K/year) based on the [1994 US Census dataset](https://archive.ics.uci.edu/dataset/2/adult). Install via PyPI or use the pre-configured Docker container.
 
 
 ## Installation
@@ -66,18 +62,18 @@ print("Pipeline finished.")
 
 - link: [Docker Desktop](https://www.docker.com/products/docker-desktop)
 
-### 2. Clone the Repository
+#### 2. Clone the Repository
 ```bash
 git clone https://github.com/caitpj/d100_d400_income_predict.git
 cd d100_d400_income_predict
 ```
 
-### 2. Build the Docker Image
+#### 3. Build the Docker Image
 
 `docker build -t conda-uciml .` (from root of d100_d400_income_predict)
 
-### 3. Run the Model Pipeline
-This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key data files and visualisations. It should take a minuite or so to run.
+#### 4. Run the Model Pipeline
+This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key data files and visualisations. It should take a minute or so to run.
 ```bash
 docker run --rm --shm-size=2g \
 -v "$(git rev-parse --show-toplevel):/app" \
@@ -86,7 +82,7 @@ docker run --rm --shm-size=2g \
 conda-uciml python src/income_predict_d100_d400/pipeline.py
 ```
 
-### 4. Run Notebooks
+#### 5. Run Notebooks
 ```bash
 docker run --rm -it \
 -v "$(git rev-parse --show-toplevel):/app" \
@@ -130,6 +126,6 @@ Some code was AI generated, notably:
 
 In other areas, AI was used to help with debugging, notably:
 - Docker related issues
-- Performence issues with hypertunning
+- Performance issues with hypertuning
 
 All code generated from AI is understood and reviewed by the author.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "income_predict_d100_d400"
-version = "0.1.4"
+version = "1.0.0"
 description = "My installable package for income prediction"
 requires-python = ">=3.12"
 dependencies = [
