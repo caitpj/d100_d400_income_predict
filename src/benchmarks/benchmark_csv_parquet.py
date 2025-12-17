@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 from typing import Tuple
 
-import pandas as pd
+import polars as pl
 
 from income_predict_d100_d400.cleaning import full_clean
 from income_predict_d100_d400.robust_paths import DATA_DIR
@@ -46,18 +46,18 @@ def setup_files() -> Tuple[Path, Path, int, int]:
         sys.exit(1)
 
     print(f"Source data found: {DATA_FILE_PATH}")
-    df_raw = pd.read_parquet(DATA_FILE_PATH)
+    df_raw = pl.read_parquet(DATA_FILE_PATH)
 
     source_csv = Path("temp_csv.csv")
     source_parquet = Path("temp_parquet.parquet")
 
     print(f"Creating {source_csv}...")
-    df_raw.to_csv(source_csv, index=False)
+    df_raw.write_csv(source_csv)
     csv_size = source_csv.stat().st_size
     print(f"  -> File size: {convert_bytes(csv_size)}")
 
     print(f"Creating {source_parquet}...")
-    df_raw.to_parquet(source_parquet, index=False)
+    df_raw.write_parquet(source_parquet)
     parquet_size = source_parquet.stat().st_size
     print(f"  -> File size: {convert_bytes(parquet_size)}")
 
@@ -72,16 +72,16 @@ def run_benchmark_cycle(
     start_time = time.perf_counter()
 
     if format_type == "csv":
-        df = pd.read_csv(source_file)
+        df = pl.read_csv(source_file)
     else:
-        df = pd.read_parquet(source_file)
+        df = pl.read_parquet(source_file)
 
     df = full_clean(df)
 
     if format_type == "csv":
-        df.to_csv(output_file, index=False)
+        df.write_csv(output_file)
     else:
-        df.to_parquet(output_file, index=False)
+        df.write_parquet(output_file)
 
     return time.perf_counter() - start_time
 

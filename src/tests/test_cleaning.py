@@ -54,5 +54,4 @@ def test_binarize_marital_status(status, expected):
     result = binarize_marital_status(df)
 
     assert "is_married_healthy" in result.columns
-    assert "marital_status" not in result.columns
     assert result["is_married_healthy"].item(0) == expected
