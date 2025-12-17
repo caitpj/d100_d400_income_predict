@@ -16,21 +16,36 @@ class SignedLogTransformer(OneToOneFeatureMixin, BaseEstimator, TransformerMixin
         self, X: Union[np.ndarray, pd.DataFrame], y: Optional[np.ndarray] = None
     ) -> "SignedLogTransformer":
         """
-        Validates input data and captures feature names.
+        Validate input data and capture feature names for transformation.
+
+        Parameters:
+            X: Input data of shape (n_samples, n_features). Can be a numpy array
+                or pandas DataFrame. If a DataFrame, feature names are captured.
+            y: Ignored. Present for API compatibility with sklearn transformers.
+
+        Returns:
+            The fitted transformer instance.
         """
-        # Capture feature names if input is a DataFrame (needed for OneToOneFeatureMixin)
         if hasattr(X, "columns"):
             self.feature_names_in_ = np.array(X.columns, dtype=object)
 
-        # Use public check_array instead of internal _validate_data
         X = check_array(X, accept_sparse=False, ensure_2d=True)
         self.n_features_in_ = X.shape[1]
         return self
 
     def transform(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         """
-        Apply the signed log transformation.
+        Apply the signed log transformation to the input data.
+
+        Transforms each value using the formula: sign(x) * log(1 + |x|).
+        This handles negative values and zeros gracefully.
+
+        Parameters:
+            X: Input data of shape (n_samples, n_features) to transform.
+
+        Returns:
+            Transformed array of the same shape as input, with the signed log
+            transformation applied element-wise.
         """
-        # Use public check_array instead of internal _validate_data
         X = check_array(X, accept_sparse=False, ensure_2d=True)
         return np.sign(X) * np.log1p(np.abs(X))

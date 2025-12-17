@@ -240,7 +240,7 @@ def distribution_variety(
         print("Error: Required columns not found in DataFrame!")
         return None
 
-    # Get the data for both columns, removing NaN values
+    # Get the data for both columns, removing null values
     # Convert to pandas Series to reuse the complex plotting logic below
     age_data = df["age"].cast(pl.Float64, strict=False).drop_nulls().to_pandas()
     hours_data = (
@@ -874,6 +874,11 @@ def categorical_pattern_contrast(df: pl.DataFrame) -> None:
 
     # Gradient color scheme - smooth transition showing hierarchy
     n_occ = len(high_income_occ)
+    ax1.barh(
+        range(n_occ),
+        high_income_occ.values,
+        color=plt.cm.Blues(np.linspace(0.3, 0.9, n_occ)),
+    )
 
     ax1.set_yticks(range(n_occ))
     ax1.set_yticklabels(crosstab_occ.index, fontsize=9)
@@ -901,22 +906,6 @@ def categorical_pattern_contrast(df: pl.DataFrame) -> None:
         ),
     )
 
-    ax1.axvline(
-        x=high_income_occ.median(),
-        color="#546E7A",
-        linestyle="--",
-        linewidth=1.5,
-        alpha=0.7,
-    )
-    ax1.text(
-        high_income_occ.median() + 1,
-        n_occ - 1,
-        "median",
-        fontsize=8,
-        color="#546E7A",
-        va="center",
-    )
-
     ax1.spines["top"].set_visible(False)
     ax1.spines["right"].set_visible(False)
     ax1.grid(axis="x", linestyle="--", alpha=0.3)
@@ -941,6 +930,10 @@ def categorical_pattern_contrast(df: pl.DataFrame) -> None:
             colors_marital.append("#1565C0")  # Blue for married w/ spouse present
         else:
             colors_marital.append("#BBDEFB")  # Light blue for others
+
+    ax2.barh(
+        range(len(crosstab_marital)), high_income_marital.values, color=colors_marital
+    )
 
     ax2.set_yticks(range(len(crosstab_marital)))
     ax2.set_yticklabels(crosstab_marital.index, fontsize=9)
@@ -1037,7 +1030,7 @@ def visualize_data_quality_issues(df: pl.DataFrame) -> None:
 
     # --- 1. Calculate all issue types ---
     null_counts_row = df.null_count().row(0)
-    nan_counts = {col: count for col, count in zip(cols, null_counts_row)}
+    null_counts = {col: count for col, count in zip(cols, null_counts_row)}
 
     question_counts = {}
     whitespace_counts = {}
@@ -1067,17 +1060,17 @@ def visualize_data_quality_issues(df: pl.DataFrame) -> None:
     # --- 2. Build issue summary ---
     issue_data = []
     for col in cols:
-        nan_val = nan_counts.get(col, 0)
+        null_val = null_counts.get(col, 0)
         q_val = question_counts.get(col, 0)
         fmt_val = format_counts.get(col, 0)
         ws_val = whitespace_counts.get(col, 0)
-        total_issues = nan_val + q_val + fmt_val + ws_val
+        total_issues = null_val + q_val + fmt_val + ws_val
 
         if total_issues > 0:
             issue_data.append(
                 {
                     "column": col,
-                    "NaN": nan_val,
+                    "null": null_val,
                     "Placeholder '?'": q_val,
                     "Trailing '.'": fmt_val,
                     "Whitespace": ws_val,
@@ -1128,7 +1121,7 @@ def visualize_data_quality_issues(df: pl.DataFrame) -> None:
     ax_left.text(
         0,
         -0.22,
-        "Clean",
+        "Clean\nValues",
         ha="center",
         va="center",
         fontsize=13,
@@ -1168,7 +1161,7 @@ def visualize_data_quality_issues(df: pl.DataFrame) -> None:
 
     # Distinct color palette - spread across spectrum
     colors_issues = {
-        "NaN": "#db0284",  # Yellow
+        "null": "#db0284",  # Yellow
         "Placeholder '?'": "#8e44ad",  # Purple
         "Trailing '.'": "#d40000",  # Orange
         "Whitespace": "#2980b9",  # Blue
@@ -1177,7 +1170,7 @@ def visualize_data_quality_issues(df: pl.DataFrame) -> None:
     # Plot stacked bars
     left = [0.0] * len(issue_data)  # Initialize as float
 
-    for issue_type in ["NaN", "Placeholder '?'", "Trailing '.'", "Whitespace"]:
+    for issue_type in ["null", "Placeholder '?'", "Trailing '.'", "Whitespace"]:
         values = [d[issue_type] / total_rows * 100 for d in issue_data]
         ax_right.barh(
             y_pos,
@@ -1273,7 +1266,7 @@ def visualize_data_quality_issues(df: pl.DataFrame) -> None:
     # Vertical legend at bottom left of bar chart
     legend_items = [
         ("Trailing '.'", colors_issues["Trailing '.'"]),
-        ("NaN", colors_issues["NaN"]),
+        ("null", colors_issues["null"]),
         ("Placeholder '?'", colors_issues["Placeholder '?'"]),
         ("Whitespace", colors_issues["Whitespace"]),
     ]

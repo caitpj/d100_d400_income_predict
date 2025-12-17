@@ -4,23 +4,6 @@ import polars as pl
 
 from income_predict_d100_d400.robust_paths import DATA_DIR
 
-COLUMN_RENAMING: Dict[str, str] = {
-    "age": "age",
-    "workclass": "work_class",
-    "education": "education",
-    "marital-status": "marital_status",
-    "occupation": "occupation",
-    "relationship": "relationship",
-    "race": "race",
-    "sex": "sex",
-    "capital-gain": "capital_gain",
-    "capital-loss": "capital_loss",
-    "hours-per-week": "hours_per_week",
-    "native-country": "native_country",
-    "income": "income",
-}
-
-# Removed "marital_status" from this list so we can process it first
 COLUMNS_TO_DROP: List[str] = ["fnlwgt", "education-num", "income"]
 
 EDUCATION_ORDER: Dict[str, int] = {
@@ -55,6 +38,41 @@ def encode_education(df: pl.DataFrame) -> pl.DataFrame:
     """
     return df.with_columns(
         pl.col("education").replace_strict(EDUCATION_ORDER, default=None).cast(pl.Int64)
+    )
+
+
+def encode_hours_per_week(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Convert hours_per_week to ordinal categories.
+
+    Categories:
+        0: 0 hours
+        1: 1-20 hours
+        2: 21-39 hours
+        3: 40 hours (full-time)
+        4: 41-59 hours
+        5: 60+ hours
+
+    Parameters:
+        df: The DataFrame containing the 'hours_per_week' column.
+
+    Returns:
+        The DataFrame with 'hours_per_week' replaced by ordinal category values.
+    """
+    hours = pl.col("hours_per_week")
+    return df.with_columns(
+        pl.when(hours == 0)
+        .then(0)
+        .when(hours <= 20)
+        .then(1)
+        .when(hours <= 39)
+        .then(2)
+        .when(hours == 40)
+        .then(3)
+        .when(hours <= 59)
+        .then(4)
+        .otherwise(5)
+        .alias("hours_per_week")
     )
 
 
@@ -163,27 +181,26 @@ def add_unique_id(df: pl.DataFrame) -> pl.DataFrame:
     return df.with_row_index(name="unique_id")
 
 
-def clean_columns(
-    df: pl.DataFrame,
-    renaming_map: Dict[str, str] = COLUMN_RENAMING,
-    columns_to_drop: List[str] = COLUMNS_TO_DROP,
-) -> pl.DataFrame:
+def clean_columns(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Renames a standard set of columns to use snake_case and drops predefined columns.
+    Renames columns to use snake_case and drops predefined columns.
 
     Parameters:
         df: The input DataFrame.
-        renaming_map: A dictionary mapping old column names to new ones.
-        columns_to_drop: A list of column names to remove.
 
     Returns:
         The cleaned DataFrame with renamed columns and dropped features.
     """
-    columns_to_drop_in_df = [col for col in columns_to_drop if col in df.columns]
+    columns_to_drop_in_df = [col for col in COLUMNS_TO_DROP if col in df.columns]
     if columns_to_drop_in_df:
         df = df.drop(columns_to_drop_in_df)
 
-    return df.rename(renaming_map)
+    df = df.rename(lambda col: col.replace("-", "_"))
+
+    if "workclass" in df.columns:
+        df = df.rename({"workclass": "work_class"})
+
+    return df
 
 
 def clean_and_binarize_income(df: pl.DataFrame) -> pl.DataFrame:
@@ -239,10 +256,11 @@ def full_clean(df: pl.DataFrame) -> pl.DataFrame:
     """
     df = add_unique_id(df)
     df = clean_and_binarize_income(df)
-    df = clean_columns(df, COLUMN_RENAMING)
+    df = clean_columns(df)
     df = trim_dataframe_whitespace(df)
     df = replace_question_marks_with_nan(df)
     df = encode_education(df)
+    df = encode_hours_per_week(df)
     df = combine_capital(df)
     df = combine_married(df)
     df = binarize_race(df)

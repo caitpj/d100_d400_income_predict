@@ -17,29 +17,16 @@ EXPECTED_ARTIFACTS: Dict[str, Path] = {
 }
 
 
-def check_files(artifacts: Dict[str, Path]) -> Dict[str, Tuple[bool, str]]:
+def check_files() -> Dict[str, Tuple[bool, str]]:
     """
-    Checks if files exist and resolves their relative paths.
-
-    Parameters:
-        artifacts: Dictionary mapping descriptions to file paths.
+    Checks if expected artifacts exist.
 
     Returns:
-        A dictionary mapping description to (exists_bool, display_path_string).
+        A dictionary mapping description to (exists_bool, path_string).
     """
-    results: Dict[str, Tuple[bool, str]] = {}
-
-    for desc, path in artifacts.items():
-        exists = path.exists()
-
-        try:
-            display_path = str(path.relative_to(Path.cwd()))
-        except ValueError:
-            display_path = str(path)
-
-        results[desc] = (exists, display_path)
-
-    return results
+    return {
+        desc: (path.exists(), str(path)) for desc, path in EXPECTED_ARTIFACTS.items()
+    }
 
 
 def print_pipeline_summary() -> None:
@@ -47,7 +34,7 @@ def print_pipeline_summary() -> None:
     Orchestrates the checking of artifacts and prints a formatted summary table.
     Includes a dynamic check for Partial Dependence plots (expects 5 files).
     """
-    results = check_files(EXPECTED_ARTIFACTS)
+    results = check_files()
     pdp_files = list(PLOTS_DIR.glob("partial_dependence_*.png"))
     pdp_count = len(pdp_files)
     pdp_exists = pdp_count >= 5

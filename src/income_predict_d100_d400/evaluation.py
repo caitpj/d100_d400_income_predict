@@ -20,6 +20,30 @@ def evaluate_predictions(
     model: Optional[Any] = None,
     sample_weight_column: Optional[str] = None,
 ) -> pl.DataFrame:
+    """
+    Evaluate model predictions against actual outcomes.
+
+    Calculates various metrics including bias, MSE, RMSE, MAE, deviance, and Gini
+    coefficient. Predictions can be provided either as a column in the DataFrame
+    or generated from a model.
+
+    Parameters:
+        df: The DataFrame containing actual outcomes and optionally predictions.
+        outcome_column: Name of the column containing actual outcome values.
+        preds_column: Name of the column containing pre-computed predictions.
+            Mutually exclusive with `model`.
+        model: A fitted model with a `predict_proba` method to generate predictions.
+            Mutually exclusive with `preds_column`.
+        sample_weight_column: Name of the column containing sample weights.
+            If None, uniform weights are used.
+
+    Returns:
+        A DataFrame with metrics as rows, containing columns 'metric' and 'value'.
+        Metrics include: mean_preds, mean_outcome, bias, mse, rmse, mae, deviance, gini.
+
+    Raises:
+        ValueError: If neither `preds_column` nor `model` is provided.
+    """
 
     evals = {}
 
@@ -62,6 +86,17 @@ def evaluate_predictions(
 def get_feature_importance(
     importances: np.ndarray, feature_names: np.ndarray
 ) -> pl.DataFrame:
+    """
+    Create a sorted DataFrame of feature importances.
+
+    Parameters:
+        importances: Array of importance values for each feature.
+        feature_names: Array of feature names corresponding to the importances.
+
+    Returns:
+        A DataFrame with columns 'feature' and 'importance', sorted by importance
+        in descending order.
+    """
 
     return pl.DataFrame({"feature": feature_names, "importance": importances}).sort(
         "importance", descending=True
@@ -75,6 +110,23 @@ def run_evaluation(
     lgbm_model: Any,
     train_features: pl.DataFrame,
 ) -> None:
+    """
+    Run full evaluation pipeline for GLM and LGBM models.
+
+    Generates predictions on the test set, computes evaluation metrics,
+    and produces visualizations including confusion matrices, calibration curves,
+    ROC curves, feature importance rankings, and partial dependence plots.
+
+    Parameters:
+        test_df: The test DataFrame containing features, target, and unique_id.
+        target: Name of the target column.
+        glm_model: A fitted GLM sklearn Pipeline with 'preprocessor' and 'classifier' steps.
+        lgbm_model: A fitted LGBM sklearn Pipeline with 'preprocessor' and 'classifier' steps.
+        train_features: Training features DataFrame used for partial dependence plots.
+
+    Returns:
+        None. Prints evaluation metrics and saves plots to the plots directory.
+    """
 
     test_X = test_df.drop([target, "unique_id"])
     test_y = test_df[target]
@@ -144,7 +196,6 @@ def run_evaluation(
         if original not in original_features and original in train_features.columns:
             original_features.append(original)
 
-    # Subsample data for PDP to avoid hanging
     pdp_sample_size = min(1000, len(train_features))
     pdp_data = train_features.sample(n=pdp_sample_size, seed=42)
 

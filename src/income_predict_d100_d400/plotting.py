@@ -17,7 +17,7 @@ def _save_plot(name: Optional[str] = None) -> None:
     Save current figure to file instead of displaying.
 
     Parameters:
-        name: Optional name for the file. If None, uses a counter.
+        name: Name for the file.
     """
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     filepath = PLOTS_DIR / f"{name}.png"

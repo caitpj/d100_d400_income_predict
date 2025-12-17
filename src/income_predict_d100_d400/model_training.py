@@ -34,7 +34,6 @@ NUMERIC_FEATURES = [
     "is_married_healthy",
 ]
 
-# GLM gets interaction features. LGBM learns them automatically
 NUMERIC_FEATURES_GLM = NUMERIC_FEATURES + ["age_x_education"]
 
 CATEGORICAL_FEATURES = [
