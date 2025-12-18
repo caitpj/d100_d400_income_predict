@@ -28,20 +28,21 @@ python -m income_predict_d100_d400.pipeline
 
 or create your own file and import income_predict_d100_d400:
 ```python
+import polars as pl
+
 from income_predict_d100_d400 import (
-    TARGET,
     load_data,
-    load_training_outputs,
     run_cleaning_pipeline,
     run_evaluation,
     run_split,
     run_training,
 )
+from income_predict_d100_d400.model_training import TARGET, load_training_outputs
 
 print("Starting Pipeline...")
 
 file_path = load_data()
-df_raw = pd.read_parquet(file_path)
+df_raw = pl.read_parquet(file_path)
 run_cleaning_pipeline(df_raw)
 run_split()
 run_training()
