@@ -17,10 +17,14 @@ There are two ways to install and run:
 ### Install and Run - Method 1, PyPI
 
 #### 1. Install the package
-`pip install income_predict_d100_d400`
+```bash
+pip install income_predict_d100_d400
+```
 
 #### 2. Run the Pipeline
-`python -m income_predict_d100_d400.pipeline`
+```bash
+python -m income_predict_d100_d400.pipeline
+```
 
 or create your own file and import income_predict_d100_d400:
 ```python
@@ -70,7 +74,10 @@ cd d100_d400_income_predict
 
 #### 3. Build the Docker Image
 
-`docker build -t conda-uciml .` (from root of d100_d400_income_predict)
+```bash
+docker build -t conda-uciml .
+```
+(from root of d100_d400_income_predict)
 
 #### 4. Run the Model Pipeline
 This runs the model in the Docker container, including downloading the data, cleaning, training, tuning, and saving key data files and visualisations. It should take a minute or so to run.
@@ -106,7 +113,9 @@ docker run --rm -it \
 ```
 
 2. Activate the Environment Once inside the container, activate the specific environment:
-`conda activate d100_d400_env`
+```bash
+conda activate d100_d400_env
+```
 
 3. Run Tests & Checks Since you are developing inside the container, you should run the quality checks manually before committing your code:
     - Run Unit Tests:
